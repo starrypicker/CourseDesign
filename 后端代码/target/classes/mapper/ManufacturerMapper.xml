@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sports.sales.mapper.ManufacturerMapper">
+
+    <resultMap id="BaseResultMap" type="com.sports.sales.entity.Manufacturer">
+        <id column="manufacturer_code" property="manufacturerCode"/>
+        <result column="manufacturer_name" property="manufacturerName"/>
+        <result column="contact_person" property="contactPerson"/>
+        <result column="phone" property="phone"/>
+        <result column="address" property="address"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        manufacturer_code, manufacturer_name, contact_person, phone, address, create_time, update_time
+    </sql>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM manufacturer
+        ORDER BY create_time DESC
+    </select>
+
+    <select id="selectByCode" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM manufacturer WHERE manufacturer_code = #{manufacturerCode}
+    </select>
+
+    <insert id="insert" parameterType="com.sports.sales.entity.Manufacturer">
+        INSERT INTO manufacturer (manufacturer_code, manufacturer_name, contact_person, phone, address)
+        VALUES (#{manufacturerCode}, #{manufacturerName}, #{contactPerson}, #{phone}, #{address})
+    </insert>
+
+    <update id="updateByCode" parameterType="com.sports.sales.entity.Manufacturer">
+        UPDATE manufacturer
+        <set>
+            <if test="manufacturerName != null">manufacturer_name = #{manufacturerName},</if>
+            <if test="contactPerson != null">contact_person = #{contactPerson},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="address != null">address = #{address},</if>
+        </set>
+        WHERE manufacturer_code = #{manufacturerCode}
+    </update>
+
+    <delete id="deleteByCode">
+        DELETE FROM manufacturer WHERE manufacturer_code = #{manufacturerCode}
+    </delete>
+</mapper>
