@@ -36,8 +36,13 @@ public class PurchaseRecordServiceImpl implements PurchaseRecordService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean add(PurchaseRecord record) {
+        log.info("添加进货记录, productCode={}, quantity={}", record.getProductCode(), record.getQuantity());
         record.setStatus(0);
-        return purchaseRecordMapper.insert(record) > 0;
+        boolean result = purchaseRecordMapper.insert(record) > 0;
+        if (result) {
+            log.info("进货记录添加成功, id={}", record.getId());
+        }
+        return result;
     }
 
     @Override

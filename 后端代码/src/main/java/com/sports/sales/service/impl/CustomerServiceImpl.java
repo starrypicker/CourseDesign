@@ -48,15 +48,21 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean add(Customer customer) {
+        log.info("添加顾客, customerCode={}, customerName={}", customer.getCustomerCode(), customer.getCustomerName());
         encryptSensitiveData(customer);
         customer.setStatus(1);
-        return customerMapper.insert(customer) > 0;
+        boolean result = customerMapper.insert(customer) > 0;
+        if (result) {
+            log.info("顾客添加成功, customerCode={}", customer.getCustomerCode());
+        }
+        return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "customer", key = "#customer.customerCode")
     public boolean update(Customer customer) {
+        log.info("更新顾客, customerCode={}", customer.getCustomerCode());
         encryptSensitiveData(customer);
         return customerMapper.updateByCode(customer) > 0;
     }
@@ -65,6 +71,7 @@ public class CustomerServiceImpl implements CustomerService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "customer", key = "#customerCode")
     public boolean delete(String customerCode) {
+        log.info("删除顾客, customerCode={}", customerCode);
         return customerMapper.deleteByCode(customerCode) > 0;
     }
 

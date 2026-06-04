@@ -11,6 +11,8 @@ import java.util.List;
 @RequestMapping("/api/purchase")
 public class PurchaseRecordController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PurchaseRecordController.class);
+
     private final PurchaseRecordService purchaseRecordService;
 
     public PurchaseRecordController(PurchaseRecordService purchaseRecordService) {
@@ -29,11 +31,13 @@ public class PurchaseRecordController {
 
     @PostMapping
     public Result<Void> add(@RequestBody PurchaseRecord record) {
+        log.info("收到添加进货记录请求, productCode={}", record.getProductCode());
         return purchaseRecordService.add(record) ? Result.success() : Result.error("添加失败");
     }
 
     @PutMapping("/confirm/{id}")
     public Result<Void> confirmPurchase(@PathVariable Long id) {
+        log.info("收到确认进货请求, id={}", id);
         return purchaseRecordService.confirmPurchase(id) ? Result.success() : Result.error("确认失败");
     }
 }

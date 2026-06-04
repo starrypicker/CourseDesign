@@ -11,6 +11,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/customer")
 public class CustomerController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(CustomerController.class);
+
     private final CustomerService customerService;
 
     public CustomerController(CustomerService customerService) {
@@ -29,16 +31,19 @@ public class CustomerController {
 
     @PostMapping
     public Result<Void> add(@RequestBody Customer customer) {
+        log.info("收到添加顾客请求, customerCode={}", customer.getCustomerCode());
         return customerService.add(customer) ? Result.success() : Result.error("添加失败");
     }
 
     @PutMapping
     public Result<Void> update(@RequestBody Customer customer) {
+        log.info("收到更新顾客请求, customerCode={}", customer.getCustomerCode());
         return customerService.update(customer) ? Result.success() : Result.error("更新失败");
     }
 
     @DeleteMapping("/{customerCode}")
     public Result<Void> delete(@PathVariable String customerCode) {
+        log.info("收到删除顾客请求, customerCode={}", customerCode);
         return customerService.delete(customerCode) ? Result.success() : Result.error("删除失败");
     }
 }

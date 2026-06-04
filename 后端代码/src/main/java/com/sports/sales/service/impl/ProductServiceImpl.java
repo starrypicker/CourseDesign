@@ -46,14 +46,20 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "product", key = "#product.productCode")
     public boolean add(Product product) {
+        log.info("添加商品, productCode={}, productName={}", product.getProductCode(), product.getProductName());
         product.setStatus(1);
-        return productMapper.insert(product) > 0;
+        boolean result = productMapper.insert(product) > 0;
+        if (result) {
+            log.info("商品添加成功, productCode={}", product.getProductCode());
+        }
+        return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "product", key = "#product.productCode")
     public boolean update(Product product) {
+        log.info("更新商品, productCode={}", product.getProductCode());
         return productMapper.updateByCode(product) > 0;
     }
 
@@ -61,6 +67,7 @@ public class ProductServiceImpl implements ProductService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "product", key = "#productCode")
     public boolean delete(String productCode) {
+        log.info("删除商品, productCode={}", productCode);
         return productMapper.deleteByCode(productCode) > 0;
     }
 

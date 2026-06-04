@@ -13,6 +13,8 @@ import java.util.List;
 @RequestMapping("/api/product")
 public class ProductController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ProductController.class);
+
     private final ProductService productService;
 
     public ProductController(ProductService productService) {
@@ -31,16 +33,19 @@ public class ProductController {
 
     @PostMapping
     public Result<Void> add(@RequestBody Product product) {
+        log.info("收到添加商品请求, productCode={}", product.getProductCode());
         return productService.add(product) ? Result.success() : Result.error("添加失败");
     }
 
     @PutMapping
     public Result<Void> update(@RequestBody Product product) {
+        log.info("收到更新商品请求, productCode={}", product.getProductCode());
         return productService.update(product) ? Result.success() : Result.error("更新失败");
     }
 
     @DeleteMapping("/{productCode}")
     public Result<Void> delete(@PathVariable String productCode) {
+        log.info("收到删除商品请求, productCode={}", productCode);
         return productService.delete(productCode) ? Result.success() : Result.error("删除失败");
     }
 
@@ -51,6 +56,7 @@ public class ProductController {
 
     @PostMapping("/replenish")
     public Result<Void> replenishStock(@RequestParam String productCode, @RequestParam Integer quantity) {
+        log.info("收到补货请求, productCode={}, quantity={}", productCode, quantity);
         return productService.replenishStock(productCode, quantity) ? Result.success() : Result.error("补货失败");
     }
 }

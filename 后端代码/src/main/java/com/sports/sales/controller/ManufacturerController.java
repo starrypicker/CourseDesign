@@ -11,6 +11,8 @@ import java.util.List;
 @RequestMapping("/api/manufacturer")
 public class ManufacturerController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ManufacturerController.class);
+
     private final ManufacturerService manufacturerService;
 
     public ManufacturerController(ManufacturerService manufacturerService) {
@@ -29,16 +31,19 @@ public class ManufacturerController {
 
     @PostMapping
     public Result<Void> add(@RequestBody Manufacturer manufacturer) {
+        log.info("收到添加厂家请求, manufacturerCode={}", manufacturer.getManufacturerCode());
         return manufacturerService.add(manufacturer) ? Result.success() : Result.error("添加失败");
     }
 
     @PutMapping
     public Result<Void> update(@RequestBody Manufacturer manufacturer) {
+        log.info("收到更新厂家请求, manufacturerCode={}", manufacturer.getManufacturerCode());
         return manufacturerService.update(manufacturer) ? Result.success() : Result.error("更新失败");
     }
 
     @DeleteMapping("/{manufacturerCode}")
     public Result<Void> delete(@PathVariable String manufacturerCode) {
+        log.info("收到删除厂家请求, manufacturerCode={}", manufacturerCode);
         return manufacturerService.delete(manufacturerCode) ? Result.success() : Result.error("删除失败");
     }
 }

@@ -79,6 +79,8 @@ public class OrderServiceImpl implements OrderService {
                 throw new RuntimeException("系统繁忙，请稍后重试");
             }
 
+            log.info("开始创建订单, customerCode={}, 商品数={}", dto.getCustomerCode(), dto.getItems().size());
+
             Orders order = new Orders();
             order.setOrderDate(LocalDateTime.now());
             order.setCustomerCode(dto.getCustomerCode());
@@ -100,10 +102,12 @@ public class OrderServiceImpl implements OrderService {
             for (OrderCreateDTO.OrderItemDTO itemDTO : dto.getItems()) {
                 Product product = productMapper.selectByCode(itemDTO.getProductCode());
                 if (product == null) {
+                    log.warn("商品不存在: {}", itemDTO.getProductCode());
                     throw new RuntimeException("商品不存在: " + itemDTO.getProductCode());
                 }
                 if (product.getStockQuantity() < itemDTO.getQuantity()) {
                     canSupply = false;
+                    log.warn("商品库存不足: productCode={}, 需要={}, 当前={}", itemDTO.getProductCode(), itemDTO.getQuantity(), product.getStockQuantity());
                 }
 
                 OrderItem item = new OrderItem();
@@ -137,7 +141,7 @@ public class OrderServiceImpl implements OrderService {
                 }
             }
 
-            log.info("订单创建成功, orderId={}, canSupply={}", order.getOrderId(), canSupply);
+            log.info("订单创建成功, orderId={}, canSupply={}, totalAmount={}", order.getOrderId(), canSupply, totalAmount);
             return order.getOrderId();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -153,6 +157,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean confirmOrder(Long orderId) {
+        log.info("确认订单, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
@@ -167,6 +172,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean shipOrder(Long orderId) {
+        log.info("发货操作, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
@@ -186,6 +192,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean cancelOrder(Long orderId) {
+        log.info("取消订单, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
@@ -197,8 +204,10 @@ public class OrderServiceImpl implements OrderService {
             List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
             for (OrderItem item : items) {
                 productMapper.updateStock(item.getProductCode(), item.getQuantity());
+                log.info("库存回滚, productCode={}, quantity={}", item.getProductCode(), item.getQuantity());
             }
         }
+        log.info("订单取消成功, orderId={}", orderId);
         return orderMapper.updateOrderStatus(orderId, 3) > 0;
     }
 
@@ -206,6 +215,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean payOrder(Long orderId, String paymentMethod) {
+        log.info("订单付款, orderId={}, paymentMethod={}", orderId, paymentMethod);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
@@ -223,6 +233,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean completeOrder(Long orderId) {
+        log.info("完成订单, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
