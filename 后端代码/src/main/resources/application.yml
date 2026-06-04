@@ -1,5 +1,5 @@
 server:
-  port: 8443
+  port: 443
   ssl:
     enabled: true
     key-store: classpath:keystore.p12
@@ -8,7 +8,7 @@ server:
     key-alias: tomcat
 
 http:
-  port: 8080
+  port: 80
 
 spring:
   datasource:
