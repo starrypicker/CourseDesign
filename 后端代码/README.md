@@ -1,27 +1,11 @@
-# 体育用品批发销售信息系统
+# 体育用品批发销售信息系统 - 后端
+
 
 ## 项目简介
 
-本系统是一家体育用品批发商店的销售信息系统，对顾客信息、生产厂家信息、库存信息进行全面管理。系统分为前台与后台两个部分：
-
-- **前台**：供顾客购物使用，支持订购商品、请求发票、填写邮寄信息、提供支付信息等
-- **后台**：供管理员使用，支持确认订单、发货、打印发票、缺货处理、库存维护、进货管理、生成各类报表等
-
-## 目录结构
-
-```
-数据库课设/
-├── 后端代码/          # Spring Boot 后端项目
-├── 前端代码/          # Vue 前端项目
-├── 数据库/            # SQL建表脚本
-│   └── main.sql
-├── log/               # 运行日志
-└── report/            # 课设报告
-```
+本系统是一家体育用品批发商店的销售信息管理系统后端，提供顾客管理、商品管理、订单管理、厂家管理、进货管理等功能，支持前台顾客购物和后台管理员管理。
 
 ## 技术栈
-
-### 后端
 
 | 技术 | 版本 | 说明 |
 |------|------|------|
@@ -34,10 +18,6 @@
 | Lombok | 1.18.34 | 代码简化 |
 | Hutool | 5.8.26 | 工具库 |
 | JDK | 17 | 运行环境 |
-
-### 前端
-
-- Vue
 
 ## 加分项实现
 
@@ -56,11 +36,14 @@
 - MySQL 8.x
 - Redis
 - Maven 3.x
-- Node.js（前端）
 
 ## 快速开始
 
-### 1. 初始化数据库
+### 1. 安装依赖
+
+确保已安装 JDK 17、MySQL 8.x、Redis。
+
+### 2. 初始化数据库
 
 执行 `数据库/main.sql` 脚本创建数据库和表：
 
@@ -68,9 +51,9 @@
 mysql -u root -p < 数据库/main.sql
 ```
 
-### 2. 修改后端配置
+### 3. 修改配置
 
-编辑 `后端代码/src/main/resources/application.yml`，修改数据库和Redis连接信息：
+编辑 `src/main/resources/application.yml`，修改数据库和Redis连接信息：
 
 ```yaml
 spring:
@@ -81,31 +64,71 @@ spring:
     password: 你的Redis密码
 ```
 
-### 3. 启动后端
+### 4. 编译运行
 
 ```bash
-cd 后端代码
 mvn clean package -DskipTests
 java -jar target/sports-sales-1.0.0.jar
 ```
 
 或在 IntelliJ IDEA 中直接运行 `SportsSalesApplication.java`。
 
-### 4. 验证启动
+### 5. 验证启动
 
 访问 `http://localhost:8081/api/product/list`，返回JSON数据即启动成功。
 
-## 主要数据项
+## 项目结构
 
-| 数据项 | 字段 |
-|--------|------|
-| 顾客信息 | 顾客代码、顾客名称、姓名、地址、邮编、电话等 |
-| 订单信息 | 订单号、下单日期、顾客代码、运输要求、能否供货标志、运输日期、货物重量、运费、付款清单等 |
-| 订单细则 | 细则编号、订单号、产品分类编号、生产厂、数量、总金额 |
-| 库存商品信息 | 商品分类编码、生产厂家编码、商品说明、单价 |
-| 生产厂家信息 | 厂家代码、厂家名称 |
+```
+src/main/java/com/sports/sales/
+├── SportsSalesApplication.java    # 启动类
+├── common/                        # 统一响应封装
+│   ├── Result.java                # 统一返回结果
+│   └── PageResult.java            # 分页结果
+├── config/                        # 配置类
+│   ├── RedisConfig.java           # Redis缓存配置
+│   ├── RedissonConfig.java        # Redisson分布式锁配置
+│   ├── ThreadPoolConfig.java      # 线程池配置
+│   ├── CorsConfig.java            # 跨域配置
+│   └── HttpsConfig.java           # HTTPS配置
+├── controller/                    # 控制层
+│   ├── CustomerController.java    # 顾客管理
+│   ├── ManufacturerController.java # 厂家管理
+│   ├── ProductController.java     # 商品管理
+│   ├── OrderController.java       # 订单管理
+│   └── PurchaseRecordController.java # 进货管理
+├── dto/                           # 数据传输对象
+│   ├── OrderCreateDTO.java        # 创建订单请求
+│   ├── OrderQueryDTO.java         # 订单查询参数
+│   ├── ProductQueryDTO.java       # 商品查询参数
+│   └── CustomerQueryDTO.java      # 顾客查询参数
+├── entity/                        # 实体类
+│   ├── Customer.java              # 顾客
+│   ├── Manufacturer.java          # 厂家
+│   ├── Product.java               # 商品
+│   ├── Orders.java                # 订单
+│   ├── OrderItem.java             # 订单细则
+│   └── PurchaseRecord.java        # 进货记录
+├── exception/                     # 异常处理
+│   └── GlobalExceptionHandler.java # 全局异常处理器
+├── mapper/                        # MyBatis Mapper接口
+├── service/                       # 业务接口
+│   └── impl/                      # 业务实现
+├── task/                          # 定时任务
+│   ├── StockMonitorTask.java      # 库存预警（每天8:00）
+│   └── OrderTimeoutTask.java      # 订单超时检查（每30分钟）
+└── util/                          # 工具类
+    ├── CryptoUtil.java            # AES加解密工具
+    └── KeyStoreGenerator.java     # HTTPS证书生成工具
 
-## API接口概览
+src/main/resources/
+├── application.yml                # 应用配置
+├── logback-spring.xml             # 日志配置
+├── keystore.p12                   # HTTPS证书
+└── mapper/                        # MyBatis XML映射文件
+```
+
+## API接口
 
 ### 顾客管理 `/api/customer`
 
@@ -186,10 +209,22 @@ Content-Type: application/json
 
 ## 日志
 
-日志文件位于 `log/` 目录下：
+日志文件位于项目上级目录的 `log/` 文件夹下：
 
 | 文件 | 说明 |
 |------|------|
 | sports-sales.log | 全量日志，按天滚动，保留30天 |
 | sports-sales-error.log | 错误日志，仅ERROR级别 |
 | sports-sales-biz.log | 业务操作日志（订单/库存等关键操作） |
+
+## HTTPS配置
+
+默认启用HTTPS（443端口），HTTP（80端口）自动重定向到HTTPS。
+
+如需关闭HTTPS，修改 `application.yml`：
+
+```yaml
+server:
+  ssl:
+    enabled: false
+```
