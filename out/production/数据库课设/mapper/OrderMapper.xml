@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sports.sales.mapper.OrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.sports.sales.entity.Orders">
+        <id column="order_id" property="orderId"/>
+        <result column="order_date" property="orderDate"/>
+        <result column="customer_code" property="customerCode"/>
+        <result column="shipping_requirement" property="shippingRequirement"/>
+        <result column="can_supply" property="canSupply"/>
+        <result column="shipping_date" property="shippingDate"/>
+        <result column="total_weight" property="totalWeight"/>
+        <result column="shipping_fee" property="shippingFee"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="payment_status" property="paymentStatus"/>
+        <result column="shipping_status" property="shippingStatus"/>
+        <result column="order_status" property="orderStatus"/>
+        <result column="recipient_name" property="recipientName"/>
+        <result column="recipient_address" property="recipientAddress"/>
+        <result column="recipient_phone" property="recipientPhone"/>
+        <result column="payment_method" property="paymentMethod"/>
+        <result column="payment_time" property="paymentTime"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="customer_name" property="customerName"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        o.order_id, o.order_date, o.customer_code, o.shipping_requirement, o.can_supply,
+        o.shipping_date, o.total_weight, o.shipping_fee, o.total_amount,
+        o.payment_status, o.shipping_status, o.order_status,
+        o.recipient_name, o.recipient_address, o.recipient_phone,
+        o.payment_method, o.payment_time, o.remark,
+        o.create_time, o.update_time, c.customer_name
+    </sql>
+
+    <select id="selectList" resultMap="BaseResultMap" parameterType="com.sports.sales.dto.OrderQueryDTO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customer c ON o.customer_code = c.customer_code
+        <where>
+            <if test="orderId != null">
+                AND o.order_id = #{orderId}
+            </if>
+            <if test="customerCode != null and customerCode != ''">
+                AND o.customer_code = #{customerCode}
+            </if>
+            <if test="paymentStatus != null">
+                AND o.payment_status = #{paymentStatus}
+            </if>
+            <if test="shippingStatus != null">
+                AND o.shipping_status = #{shippingStatus}
+            </if>
+            <if test="orderStatus != null">
+                AND o.order_status = #{orderStatus}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND o.order_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND o.order_date &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY o.create_time DESC
+        LIMIT #{pageSize} OFFSET #{pageNum}
+    </select>
+
+    <select id="selectCount" resultType="java.lang.Long" parameterType="com.sports.sales.dto.OrderQueryDTO">
+        SELECT COUNT(*) FROM orders o
+        <where>
+            <if test="orderId != null">
+                AND o.order_id = #{orderId}
+            </if>
+            <if test="customerCode != null and customerCode != ''">
+                AND o.customer_code = #{customerCode}
+            </if>
+            <if test="paymentStatus != null">
+                AND o.payment_status = #{paymentStatus}
+            </if>
+            <if test="shippingStatus != null">
+                AND o.shipping_status = #{shippingStatus}
+            </if>
+            <if test="orderStatus != null">
+                AND o.order_status = #{orderStatus}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND o.order_date &gt;= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND o.order_date &lt;= #{endDate}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customer c ON o.customer_code = c.customer_code
+        WHERE o.order_id = #{orderId}
+    </select>
+
+    <select id="selectUnpaidOrders" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customer c ON o.customer_code = c.customer_code
+        WHERE o.payment_status = 0 AND o.order_status IN (0, 1)
+        ORDER BY o.order_date ASC
+    </select>
+
+    <select id="selectUnshippedOrders" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customer c ON o.customer_code = c.customer_code
+        WHERE o.shipping_status = 0 AND o.payment_status = 1 AND o.order_status IN (0, 1)
+        ORDER BY o.order_date ASC
+    </select>
+
+    <select id="selectCompletedOrders" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customer c ON o.customer_code = c.customer_code
+        WHERE o.order_status = 2
+        ORDER BY o.shipping_date DESC
+    </select>
+
+    <insert id="insert" parameterType="com.sports.sales.entity.Orders" useGeneratedKeys="true" keyProperty="orderId">
+        INSERT INTO orders (order_date, customer_code, shipping_requirement, can_supply,
+            shipping_date, total_weight, shipping_fee, total_amount,
+            payment_status, shipping_status, order_status,
+            recipient_name, recipient_address, recipient_phone,
+            payment_method, payment_time, remark)
+        VALUES (#{orderDate}, #{customerCode}, #{shippingRequirement}, #{canSupply},
+            #{shippingDate}, #{totalWeight}, #{shippingFee}, #{totalAmount},
+            #{paymentStatus}, #{shippingStatus}, #{orderStatus},
+            #{recipientName}, #{recipientAddress}, #{recipientPhone},
+            #{paymentMethod}, #{paymentTime}, #{remark})
+    </insert>
+
+    <update id="updateById" parameterType="com.sports.sales.entity.Orders">
+        UPDATE orders
+        <set>
+            <if test="shippingRequirement != null">shipping_requirement = #{shippingRequirement},</if>
+            <if test="canSupply != null">can_supply = #{canSupply},</if>
+            <if test="shippingDate != null">shipping_date = #{shippingDate},</if>
+            <if test="totalWeight != null">total_weight = #{totalWeight},</if>
+            <if test="shippingFee != null">shipping_fee = #{shippingFee},</if>
+            <if test="totalAmount != null">total_amount = #{totalAmount},</if>
+            <if test="paymentStatus != null">payment_status = #{paymentStatus},</if>
+            <if test="shippingStatus != null">shipping_status = #{shippingStatus},</if>
+            <if test="orderStatus != null">order_status = #{orderStatus},</if>
+            <if test="recipientName != null">recipient_name = #{recipientName},</if>
+            <if test="recipientAddress != null">recipient_address = #{recipientAddress},</if>
+            <if test="recipientPhone != null">recipient_phone = #{recipientPhone},</if>
+            <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="paymentTime != null">payment_time = #{paymentTime},</if>
+            <if test="remark != null">remark = #{remark},</if>
+        </set>
+        WHERE order_id = #{orderId}
+    </update>
+
+    <update id="updateOrderStatus">
+        UPDATE orders SET order_status = #{orderStatus} WHERE order_id = #{orderId}
+    </update>
+
+    <update id="updatePaymentStatus">
+        UPDATE orders SET payment_status = #{paymentStatus} WHERE order_id = #{orderId}
+    </update>
+
+    <update id="updateShippingStatus">
+        UPDATE orders SET shipping_status = #{shippingStatus} WHERE order_id = #{orderId}
+    </update>
+</mapper>

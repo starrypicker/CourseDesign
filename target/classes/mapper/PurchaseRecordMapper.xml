@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sports.sales.mapper.PurchaseRecordMapper">
+
+    <resultMap id="BaseResultMap" type="com.sports.sales.entity.PurchaseRecord">
+        <id column="id" property="id"/>
+        <result column="product_code" property="productCode"/>
+        <result column="manufacturer_code" property="manufacturerCode"/>
+        <result column="quantity" property="quantity"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="product_name" property="productName"/>
+        <result column="manufacturer_name" property="manufacturerName"/>
+    </resultMap>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT pr.id, pr.product_code, pr.manufacturer_code, pr.quantity,
+               pr.unit_price, pr.total_amount, pr.status,
+               pr.create_time, pr.update_time,
+               p.product_name, m.manufacturer_name
+        FROM purchase_record pr
+        LEFT JOIN product p ON pr.product_code = p.product_code
+        LEFT JOIN manufacturer m ON pr.manufacturer_code = m.manufacturer_code
+        ORDER BY pr.create_time DESC
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT pr.id, pr.product_code, pr.manufacturer_code, pr.quantity,
+               pr.unit_price, pr.total_amount, pr.status,
+               pr.create_time, pr.update_time,
+               p.product_name, m.manufacturer_name
+        FROM purchase_record pr
+        LEFT JOIN product p ON pr.product_code = p.product_code
+        LEFT JOIN manufacturer m ON pr.manufacturer_code = m.manufacturer_code
+        WHERE pr.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.sports.sales.entity.PurchaseRecord" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO purchase_record (product_code, manufacturer_code, quantity, unit_price, total_amount, status)
+        VALUES (#{productCode}, #{manufacturerCode}, #{quantity}, #{unitPrice}, #{totalAmount}, #{status})
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE purchase_record SET status = #{status} WHERE id = #{id}
+    </update>
+</mapper>

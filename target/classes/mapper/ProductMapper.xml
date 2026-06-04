@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sports.sales.mapper.ProductMapper">
+
+    <resultMap id="BaseResultMap" type="com.sports.sales.entity.Product">
+        <id column="product_code" property="productCode"/>
+        <result column="manufacturer_code" property="manufacturerCode"/>
+        <result column="product_name" property="productName"/>
+        <result column="product_desc" property="productDesc"/>
+        <result column="unit_price" property="unitPrice"/>
+        <result column="stock_quantity" property="stockQuantity"/>
+        <result column="min_stock" property="minStock"/>
+        <result column="weight" property="weight"/>
+        <result column="status" property="status"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="manufacturer_name" property="manufacturerName"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        p.product_code, p.manufacturer_code, p.product_name, p.product_desc,
+        p.unit_price, p.stock_quantity, p.min_stock, p.weight, p.status,
+        p.create_time, p.update_time, m.manufacturer_name
+    </sql>
+
+    <select id="selectList" resultMap="BaseResultMap" parameterType="com.sports.sales.dto.ProductQueryDTO">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product p
+        LEFT JOIN manufacturer m ON p.manufacturer_code = m.manufacturer_code
+        <where>
+            <if test="productCode != null and productCode != ''">
+                AND p.product_code LIKE CONCAT('%', #{productCode}, '%')
+            </if>
+            <if test="productName != null and productName != ''">
+                AND p.product_name LIKE CONCAT('%', #{productName}, '%')
+            </if>
+            <if test="manufacturerCode != null and manufacturerCode != ''">
+                AND p.manufacturer_code = #{manufacturerCode}
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+        </where>
+        ORDER BY p.create_time DESC
+        LIMIT #{pageSize} OFFSET #{pageNum}
+    </select>
+
+    <select id="selectCount" resultType="java.lang.Long" parameterType="com.sports.sales.dto.ProductQueryDTO">
+        SELECT COUNT(*) FROM product p
+        <where>
+            <if test="productCode != null and productCode != ''">
+                AND p.product_code LIKE CONCAT('%', #{productCode}, '%')
+            </if>
+            <if test="productName != null and productName != ''">
+                AND p.product_name LIKE CONCAT('%', #{productName}, '%')
+            </if>
+            <if test="manufacturerCode != null and manufacturerCode != ''">
+                AND p.manufacturer_code = #{manufacturerCode}
+            </if>
+            <if test="status != null">
+                AND p.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="selectByCode" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product p
+        LEFT JOIN manufacturer m ON p.manufacturer_code = m.manufacturer_code
+        WHERE p.product_code = #{productCode}
+    </select>
+
+    <select id="selectLowStock" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM product p
+        LEFT JOIN manufacturer m ON p.manufacturer_code = m.manufacturer_code
+        WHERE p.stock_quantity &lt;= p.min_stock AND p.status = 1
+    </select>
+
+    <insert id="insert" parameterType="com.sports.sales.entity.Product">
+        INSERT INTO product (product_code, manufacturer_code, product_name, product_desc, unit_price, stock_quantity, min_stock, weight, status)
+        VALUES (#{productCode}, #{manufacturerCode}, #{productName}, #{productDesc}, #{unitPrice}, #{stockQuantity}, #{minStock}, #{weight}, #{status})
+    </insert>
+
+    <update id="updateByCode" parameterType="com.sports.sales.entity.Product">
+        UPDATE product
+        <set>
+            <if test="manufacturerCode != null">manufacturer_code = #{manufacturerCode},</if>
+            <if test="productName != null">product_name = #{productName},</if>
+            <if test="productDesc != null">product_desc = #{productDesc},</if>
+            <if test="unitPrice != null">unit_price = #{unitPrice},</if>
+            <if test="stockQuantity != null">stock_quantity = #{stockQuantity},</if>
+            <if test="minStock != null">min_stock = #{minStock},</if>
+            <if test="weight != null">weight = #{weight},</if>
+            <if test="status != null">status = #{status},</if>
+        </set>
+        WHERE product_code = #{productCode}
+    </update>
+
+    <update id="updateStock">
+        UPDATE product SET stock_quantity = stock_quantity + #{quantity} WHERE product_code = #{productCode}
+    </update>
+
+    <delete id="deleteByCode">
+        DELETE FROM product WHERE product_code = #{productCode}
+    </delete>
+</mapper>

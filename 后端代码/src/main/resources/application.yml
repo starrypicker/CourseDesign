@@ -15,7 +15,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/sports_sales?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    password: ${DB_PASSWORD:yinlinghang111_Y}
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 5
@@ -32,7 +32,7 @@ spring:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+    password: ${REDIS_PASSWORD:yinlinghang111_Y}
     database: 0
     timeout: 5000ms
     lettuce:
@@ -78,4 +78,4 @@ thread-pool:
 
 redisson:
   address: redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}
-  password: ${REDIS_PASSWORD:}
+  password: ${REDIS_PASSWORD:yinlinghang111_Y}
