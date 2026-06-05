@@ -23,7 +23,7 @@
           <el-dropdown @command="handleCommand">
             <span class="user-dropdown">
               <el-icon><UserFilled /></el-icon>
-              {{ userInfo?.username || '用户' }}
+              {{ userInfo?.customerName || '用户' }}
               <el-icon class="el-icon--right"><ArrowDown /></el-icon>
             </span>
             <template #dropdown>
@@ -58,7 +58,7 @@ const router = useRouter()
 const store = useStore()
 
 const isLoggedIn = computed(() => store.getters.isLoggedIn)
-const isAdmin = computed(() => store.getters.isAdmin)
+const isAdmin = computed(() => store.getters.userInfo?.role === 'admin')
 const userInfo = computed(() => store.getters.userInfo)
 const cartCount = computed(() => store.getters.cartCount)
 

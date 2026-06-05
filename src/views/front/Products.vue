@@ -17,7 +17,7 @@
         <el-col :xs="24" :sm="12" :md="6">
           <el-select v-model="selectedCategory" placeholder="选择分类" clearable @change="handleSearch">
             <el-option label="全部分类" value="" />
-            <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+            <el-option v-for="cat in categories" :key="cat.value" :label="cat.label" :value="cat.value" />
           </el-select>
         </el-col>
         <el-col :xs="24" :sm="12" :md="4">
@@ -31,20 +31,20 @@
 
     <!-- 商品列表 -->
     <el-row :gutter="20" class="product-list">
-      <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in filteredProducts" :key="item.id">
+      <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in filteredProducts" :key="item.productCode">
         <el-card class="product-card" shadow="hover">
           <div class="product-image">
             <el-icon :size="60" color="#909399"><ShoppingBag /></el-icon>
           </div>
           <div class="product-info">
-            <h3 class="product-name">{{ item.name }}</h3>
-            <el-tag size="small" type="info">{{ item.category }}</el-tag>
-            <p class="product-desc">{{ item.description }}</p>
+            <h3 class="product-name">{{ item.productName }}</h3>
+            <el-tag size="small" type="info">{{ item.manufacturerName || '未知厂家' }}</el-tag>
+            <p class="product-desc">{{ item.productDesc }}</p>
             <div class="product-bottom">
-              <span class="price">¥ {{ item.price.toFixed(2) }}</span>
-              <el-button type="warning" plain size="small" @click="handleAddToCart(item)">
+              <span class="price">¥ {{ Number(item.unitPrice).toFixed(2) }}</span>
+              <el-button type="warning" plain size="small" @click="handleAddToCart(item)" :disabled="item.stockQuantity <= 0">
                 <el-icon><ShoppingCart /></el-icon>
-                加入购物车
+                {{ item.stockQuantity <= 0 ? '已售罄' : '加入购物车' }}
               </el-button>
             </div>
           </div>
@@ -53,61 +53,99 @@
     </el-row>
 
     <!-- 空状态 -->
-    <el-empty v-if="filteredProducts.length === 0" description="暂无商品" />
+    <el-empty v-if="!loading && filteredProducts.length === 0" description="暂无商品" />
+    <!-- 分页 -->
+    <div class="pagination-wrapper" v-if="total > 0" style="display:flex;justify-content:center;margin-top:20px;">
+      <el-pagination
+        v-model:current-page="pageNum"
+        :page-size="pageSize"
+        :total="total"
+        layout="prev, pager, next"
+        @current-change="fetchProducts"
+      />
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
 import { Search, ShoppingBag, ShoppingCart } from '@element-plus/icons-vue'
+import { getProductList } from '@/api/product'
+import { getManufacturerList } from '@/api/manufacturer'
 
 const store = useStore()
 
 const searchKeyword = ref('')
-const selectedCategory = ref('')
+const selectedCategory = ref('')  // 对应后端的厂家(manufacturerCode)
+const products = ref([])
+const manufacturers = ref([])
+const total = ref(0)
+const loading = ref(false)
+const pageNum = ref(1)
+const pageSize = ref(12)
 
-// 模拟商品数据（后续替换为API请求）
-const products = ref([
-  { id: 1, name: '专业跑步鞋', price: 599, category: '鞋类', description: '轻量缓震，适合长跑训练', stock: 50 },
-  { id: 2, name: '透气运动T恤', price: 129, category: '服装', description: '速干透气面料，运动必备', stock: 120 },
-  { id: 3, name: '碳纤维羽毛球拍', price: 880, category: '球类', description: '超轻碳纤维材质，进攻利器', stock: 30 },
-  { id: 4, name: '加厚瑜伽垫', price: 89, category: '健身', description: '环保TPE材质，防滑加厚', stock: 200 },
-  { id: 5, name: '户外登山包 50L', price: 369, category: '户外', description: '大容量防水，登山徒步首选', stock: 45 },
-  { id: 6, name: '竞速泳镜', price: 158, category: '游泳', description: '防雾防紫外线，专业竞速', stock: 80 },
-  { id: 7, name: '篮球鞋', price: 499, category: '鞋类', description: '高帮护踝，室内外通用', stock: 60 },
-  { id: 8, name: '运动短裤', price: 79, category: '服装', description: '宽松舒适，速干透气', stock: 150 },
-  { id: 9, name: '哑铃套装 20kg', price: 259, category: '健身', description: '包胶静音，家用健身', stock: 35 },
-  { id: 10, name: '网球拍', price: 320, category: '球类', description: '碳铝合金，初学者适用', stock: 40 },
-  { id: 11, name: '冲锋衣', price: 459, category: '户外', description: '防风防雨透气，三合一设计', stock: 25 },
-  { id: 12, name: '连体泳衣', price: 199, category: '游泳', description: '竞速修身，低水阻设计', stock: 55 }
-])
+// 加载商品数据
+const fetchProducts = async () => {
+  loading.value = true
+  try {
+    const res = await getProductList({
+      productName: searchKeyword.value || undefined,
+      manufacturerCode: selectedCategory.value || undefined,
+      status: 1,  // 只查上架商品
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    })
+    // res 是 PageResult: { total, rows, pageNum, pageSize }
+    products.value = res.rows || []
+    total.value = res.total || 0
+  } catch (e) {
+    console.error('获取商品失败:', e)
+  } finally {
+    loading.value = false
+  }
+}
 
+// 加载厂家列表（用作分类筛选）
+const fetchManufacturers = async () => {
+  try {
+    const res = await getManufacturerList()
+    manufacturers.value = res || []
+  } catch (e) {
+    console.error('获取厂家列表失败:', e)
+  }
+}
+
+onMounted(() => {
+  fetchProducts()
+  fetchManufacturers()
+})
+
+// 分类选项：从厂家列表生成
 const categories = computed(() => {
-  const cats = [...new Set(products.value.map(p => p.category))]
-  return cats
+  return manufacturers.value.map(m => ({
+    label: m.manufacturerName,
+    value: m.manufacturerCode
+  }))
 })
 
-const filteredProducts = computed(() => {
-  let result = products.value
-  if (searchKeyword.value) {
-    const keyword = searchKeyword.value.toLowerCase()
-    result = result.filter(p => p.name.toLowerCase().includes(keyword) || p.description.toLowerCase().includes(keyword))
-  }
-  if (selectedCategory.value) {
-    result = result.filter(p => p.category === selectedCategory.value)
-  }
-  return result
-})
+const filteredProducts = computed(() => products.value)
 
 const handleSearch = () => {
-  // 搜索逻辑已通过 computed 自动处理
+  pageNum.value = 1
+  fetchProducts()
 }
 
 const handleAddToCart = (item) => {
-  store.dispatch('addToCart', { id: item.id, name: item.name, price: item.price })
-  ElMessage.success(`已将 ${item.name} 加入购物车！`)
+  // 字段映射：后端 productCode/productName/unitPrice
+  store.dispatch('addToCart', {
+    productCode: item.productCode,
+    productName: item.productName,
+    unitPrice: item.unitPrice,
+    quantity: 1
+  })
+  ElMessage.success(`已将 ${item.productName} 加入购物车！`)
 }
 </script>
 

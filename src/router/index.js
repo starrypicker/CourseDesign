@@ -112,17 +112,21 @@ const router = createRouter({
 
 // 全局前置守卫：权限验证
 router.beforeEach((to, from, next) => {
-  // 从 Vuex 或 localStorage 获取 token 和用户角色
   const token = localStorage.getItem('token')
-  const userRole = localStorage.getItem('role') // 简单起见存在本地，实际可从 store 读取
+  // 从 userInfo 中判断是否是管理员
+  let isAdmin = false
+  try {
+    const userInfo = JSON.parse(localStorage.getItem('userInfo') || 'null')
+    isAdmin = userInfo?.role === 'admin'
+  } catch (e) {}
 
   // 如果目标路由需要登录
   if (to.matched.some(record => record.meta.requiresAuth)) {
     if (!token) {
       // 未登录，跳转到登录页，并携带 redirect 参数以便登录后回跳
       next({ name: 'Login', query: { redirect: to.fullPath } })
-    } else if (to.meta.role && to.meta.role !== userRole) {
-      // 已登录但角色不匹配（例如顾客尝试访问后台）
+    } else if (to.meta.role === 'admin' && !isAdmin) {
+      // 已登录但不是管理员，尝试访问后台
       next({ name: 'FrontHome' })
     } else {
       next()

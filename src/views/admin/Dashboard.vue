@@ -60,19 +60,23 @@
             </div>
           </template>
           <el-table :data="recentOrders" stripe size="small">
-            <el-table-column prop="orderNo" label="订单号" width="150" />
-            <el-table-column prop="customer" label="客户" width="100" />
-            <el-table-column prop="amount" label="金额" width="100">
+            <el-table-column prop="orderId" label="订单号" width="80" />
+            <el-table-column prop="customerName" label="客户" width="100">
               <template #default="{ row }">
-                <span style="color: #f56c6c; font-weight: 500;">¥ {{ row.amount.toFixed(2) }}</span>
+                <span>{{ row.customerName || row.customerCode }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="status" label="状态" width="90">
+            <el-table-column prop="totalAmount" label="金额" width="100">
               <template #default="{ row }">
-                <el-tag :type="statusTagType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+                <span style="color: #f56c6c; font-weight: 500;">¥ {{ Number(row.totalAmount).toFixed(2) }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="createTime" label="时间" />
+            <el-table-column label="状态" width="90">
+              <template #default="{ row }">
+                <el-tag :type="statusTagType(row.orderStatus)" size="small">{{ statusText(row.orderStatus) }}</el-tag>
+              </template>
+            </el-table-column>
+            <el-table-column prop="orderDate" label="时间" />
           </el-table>
         </el-card>
       </el-col>
@@ -87,11 +91,11 @@
             </div>
           </template>
           <div class="hot-products">
-            <div v-for="(item, index) in hotProducts" :key="item.id" class="hot-item">
+            <div v-for="(item, index) in hotProducts" :key="item.productCode" class="hot-item">
               <span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span>
-              <span class="hot-name">{{ item.name }}</span>
-              <span class="hot-sales">销量 {{ item.sales }}</span>
-              <span class="hot-amount">¥ {{ item.price.toFixed(2) }}</span>
+              <span class="hot-name">{{ item.productName }}</span>
+              <span class="hot-sales">库存 {{ item.stockQuantity }}</span>
+              <span class="hot-amount">¥ {{ Number(item.unitPrice).toFixed(2) }}</span>
             </div>
           </div>
         </el-card>
@@ -101,41 +105,72 @@
 </template>
 
 <script setup>
-import { reactive } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { Goods, List, ShoppingBag, User } from '@element-plus/icons-vue'
+import { getProductList } from '@/api/product'
+import { getOrderList } from '@/api/order'
+import { getCustomerList } from '@/api/customer'
 
 const stats = reactive({
-  todaySales: 12680,
-  todayOrders: 38,
-  totalProducts: 156,
-  totalUsers: 1024
+  todaySales: 0,
+  todayOrders: 0,
+  totalProducts: 0,
+  totalUsers: 0
 })
 
-const recentOrders = reactive([
-  { orderNo: 'SP20260604010', customer: '张三', amount: 599, status: 'pending', createTime: '2026-06-04 15:30' },
-  { orderNo: 'SP20260604009', customer: '李四', amount: 1288, status: 'paid', createTime: '2026-06-04 14:20' },
-  { orderNo: 'SP20260604008', customer: '王五', amount: 369, status: 'shipped', createTime: '2026-06-04 13:15' },
-  { orderNo: 'SP20260604007', customer: '赵六', amount: 259, status: 'completed', createTime: '2026-06-04 11:40' },
-  { orderNo: 'SP20260604006', customer: '孙七', amount: 880, status: 'completed', createTime: '2026-06-04 10:05' }
-])
+const recentOrders = ref([])
+const hotProducts = ref([])
 
-const hotProducts = reactive([
-  { id: 1, name: '专业跑步鞋', sales: 328, price: 599 },
-  { id: 2, name: '透气运动T恤', sales: 296, price: 129 },
-  { id: 3, name: '碳纤维羽毛球拍', sales: 185, price: 880 },
-  { id: 4, name: '哑铃套装 20kg', sales: 162, price: 259 },
-  { id: 5, name: '冲锋衣', sales: 148, price: 459 },
-  { id: 6, name: '篮球鞋', sales: 135, price: 499 }
-])
+// 加载统计数据
+const fetchStats = async () => {
+  try {
+    // 商品总数
+    const productRes = await getProductList({ pageNum: 1, pageSize: 1 })
+    stats.totalProducts = productRes.total || 0
 
-const statusText = (status) => {
-  const map = { pending: '待付款', paid: '已付款', shipped: '已发货', completed: '已完成' }
-  return map[status] || status
+    // 顾客总数
+    const customerRes = await getCustomerList({ pageNum: 1, pageSize: 1 })
+    stats.totalUsers = customerRes.total || 0
+
+    // 订单总数 + 计算销售额
+    const orderRes = await getOrderList({ pageNum: 1, pageSize: 100 })
+    stats.todayOrders = orderRes.total || 0
+    // 计算已完成订单的销售额
+    const allOrders = orderRes.rows || []
+    stats.todaySales = allOrders
+      .filter(o => o.orderStatus === 2)
+      .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)
+
+    // 最近5条订单
+    recentOrders.value = allOrders.slice(0, 5)
+  } catch (e) {
+    console.error('获取统计数据失败:', e)
+  }
 }
 
-const statusTagType = (status) => {
-  const map = { pending: 'warning', paid: 'primary', shipped: '', completed: 'success' }
-  return map[status] || 'info'
+// 加载热销商品（用商品列表前6个代替）
+const fetchHotProducts = async () => {
+  try {
+    const res = await getProductList({ pageNum: 1, pageSize: 6, status: 1 })
+    hotProducts.value = res.rows || []
+  } catch (e) {
+    console.error('获取热销商品失败:', e)
+  }
+}
+
+onMounted(() => {
+  fetchStats()
+  fetchHotProducts()
+})
+
+const statusText = (orderStatus) => {
+  const map = { 0: '待确认', 1: '已确认', 2: '已完成', 3: '已取消' }
+  return map[orderStatus] || '未知'
+}
+
+const statusTagType = (orderStatus) => {
+  const map = { 0: 'warning', 1: 'primary', 2: 'success', 3: 'info' }
+  return map[orderStatus] || 'info'
 }
 </script>
 

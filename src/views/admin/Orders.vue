@@ -10,10 +10,10 @@
         <el-col :xs="24" :sm="6" :md="4">
           <el-select v-model="selectedStatus" placeholder="订单状态" clearable>
             <el-option label="全部状态" value="" />
-            <el-option label="待付款" value="pending" />
-            <el-option label="已付款" value="paid" />
-            <el-option label="已发货" value="shipped" />
-            <el-option label="已完成" value="completed" />
+            <el-option label="待确认" value="0" />
+            <el-option label="已确认" value="1" />
+            <el-option label="已完成" value="2" />
+            <el-option label="已取消" value="3" />
           </el-select>
         </el-col>
       </el-row>
@@ -22,29 +22,48 @@
     <!-- 订单表格 -->
     <el-card shadow="never">
       <el-table :data="filteredOrders" stripe style="width: 100%">
-        <el-table-column prop="orderNo" label="订单号" width="150" />
-        <el-table-column prop="customer" label="客户" width="100" />
+        <el-table-column prop="orderId" label="订单号" width="80" />
+        <el-table-column prop="customerName" label="客户" width="120">
+          <template #default="{ row }">
+            <span>{{ row.customerName || row.customerCode }}</span>
+          </template>
+        </el-table-column>
         <el-table-column label="商品" min-width="200">
           <template #default="{ row }">
-            <span>{{ row.items.map(i => i.name).join('、') }}</span>
+            <span>{{ (row.items || []).map(i => i.productName || i.productCode).join('、') }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="totalAmount" label="金额" width="100">
           <template #default="{ row }">
-            <span style="color: #f56c6c; font-weight: 500;">¥ {{ row.totalAmount.toFixed(2) }}</span>
+            <span style="color: #f56c6c; font-weight: 500;">¥ {{ Number(row.totalAmount).toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="status" label="状态" width="90">
+        <el-table-column label="付款状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="statusTagType(row.status)" size="small">{{ statusText(row.status) }}</el-tag>
+            <el-tag :type="row.paymentStatus === 1 ? 'success' : 'warning'" size="small">
+              {{ row.paymentStatus === 1 ? '已付款' : '未付款' }}
+            </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createTime" label="下单时间" width="160" />
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column label="发货状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="row.shippingStatus === 1 ? '' : row.shippingStatus === 2 ? 'success' : 'info'" size="small">
+              {{ row.shippingStatus === 1 ? '已发货' : row.shippingStatus === 2 ? '已签收' : '未发货' }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="订单状态" width="90">
+          <template #default="{ row }">
+            <el-tag :type="statusTagType(row.orderStatus)" size="small">{{ statusText(row.orderStatus) }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="orderDate" label="下单时间" width="160" />
+        <el-table-column label="操作" width="220" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
-            <el-button v-if="row.status === 'paid'" text type="success" size="small" @click="handleShip(row)">发货</el-button>
-            <el-button v-if="row.status === 'pending'" text type="warning" size="small" @click="handleCancel(row)">取消</el-button>
+            <el-button v-if="row.orderStatus === 0" text type="success" size="small" @click="handleConfirm(row)">确认</el-button>
+            <el-button v-if="row.paymentStatus === 1 && row.shippingStatus === 0" text type="success" size="small" @click="handleShip(row)">发货</el-button>
+            <el-button v-if="row.orderStatus === 0" text type="warning" size="small" @click="handleCancel(row)">取消</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -54,29 +73,41 @@
     <el-dialog v-model="detailVisible" title="订单详情" width="600px">
       <div v-if="currentOrder" class="order-detail">
         <el-descriptions :column="2" border size="small">
-          <el-descriptions-item label="订单号">{{ currentOrder.orderNo }}</el-descriptions-item>
-          <el-descriptions-item label="客户">{{ currentOrder.customer }}</el-descriptions-item>
-          <el-descriptions-item label="下单时间">{{ currentOrder.createTime }}</el-descriptions-item>
-          <el-descriptions-item label="状态">
-            <el-tag :type="statusTagType(currentOrder.status)" size="small">{{ statusText(currentOrder.status) }}</el-tag>
+          <el-descriptions-item label="订单号">{{ currentOrder.orderId }}</el-descriptions-item>
+          <el-descriptions-item label="客户">{{ currentOrder.customerName || currentOrder.customerCode }}</el-descriptions-item>
+          <el-descriptions-item label="下单时间">{{ currentOrder.orderDate }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">
+            <el-tag :type="statusTagType(currentOrder.orderStatus)" size="small">{{ statusText(currentOrder.orderStatus) }}</el-tag>
           </el-descriptions-item>
-          <el-descriptions-item label="收货地址" :span="2">{{ currentOrder.address }}</el-descriptions-item>
+          <el-descriptions-item label="付款状态">
+            <el-tag :type="currentOrder.paymentStatus === 1 ? 'success' : 'warning'" size="small">
+              {{ currentOrder.paymentStatus === 1 ? '已付款' : '未付款' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="发货状态">
+            <el-tag :type="currentOrder.shippingStatus === 1 ? '' : currentOrder.shippingStatus === 2 ? 'success' : 'info'" size="small">
+              {{ currentOrder.shippingStatus === 1 ? '已发货' : currentOrder.shippingStatus === 2 ? '已签收' : '未发货' }}
+            </el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="收货人">{{ currentOrder.recipientName }}</el-descriptions-item>
+          <el-descriptions-item label="收货电话">{{ currentOrder.recipientPhone }}</el-descriptions-item>
+          <el-descriptions-item label="收货地址" :span="2">{{ currentOrder.recipientAddress }}</el-descriptions-item>
         </el-descriptions>
         <h4 style="margin: 16px 0 8px;">商品明细</h4>
-        <el-table :data="currentOrder.items" size="small" stripe>
-          <el-table-column prop="name" label="商品" />
-          <el-table-column prop="price" label="单价" width="100">
-            <template #default="{ row }">¥ {{ row.price.toFixed(2) }}</template>
+        <el-table :data="currentOrder.items || []" size="small" stripe>
+          <el-table-column prop="productName" label="商品" />
+          <el-table-column prop="unitPrice" label="单价" width="100">
+            <template #default="{ row }">¥ {{ Number(row.unitPrice).toFixed(2) }}</template>
           </el-table-column>
           <el-table-column prop="quantity" label="数量" width="80" />
           <el-table-column label="小计" width="100">
             <template #default="{ row }">
-              <span style="color: #f56c6c;">¥ {{ (row.price * row.quantity).toFixed(2) }}</span>
+              <span style="color: #f56c6c;">¥ {{ Number(row.totalAmount).toFixed(2) }}</span>
             </template>
           </el-table-column>
         </el-table>
         <div class="detail-total">
-          合计：<strong>¥ {{ currentOrder.totalAmount.toFixed(2) }}</strong>
+          合计：<strong>¥ {{ Number(currentOrder.totalAmount).toFixed(2) }}</strong>
         </div>
       </div>
     </el-dialog>
@@ -84,69 +115,101 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getOrderList, getOrderById, confirmOrder, shipOrder, cancelOrder } from '@/api/order'
 
 const searchKeyword = ref('')
 const selectedStatus = ref('')
 const detailVisible = ref(false)
 const currentOrder = ref(null)
 
-const orders = ref([
-  { id: 1, orderNo: 'SP20260604001', customer: '张三', totalAmount: 728, status: 'completed', createTime: '2026-06-04 10:20', address: '北京市朝阳区建国路88号', items: [{ name: '专业跑步鞋', price: 599, quantity: 1 }, { name: '透气运动T恤', price: 129, quantity: 1 }] },
-  { id: 2, orderNo: 'SP20260604002', customer: '李四', totalAmount: 880, status: 'shipped', createTime: '2026-06-04 11:30', address: '上海市浦东新区陆家嘴路100号', items: [{ name: '碳纤维羽毛球拍', price: 880, quantity: 1 }] },
-  { id: 3, orderNo: 'SP20260604003', customer: '王五', totalAmount: 259, status: 'paid', createTime: '2026-06-04 12:45', address: '广州市天河区天河路200号', items: [{ name: '哑铃套装 20kg', price: 259, quantity: 1 }] },
-  { id: 4, orderNo: 'SP20260604004', customer: '赵六', totalAmount: 459, status: 'pending', createTime: '2026-06-04 13:10', address: '深圳市南山区科技路50号', items: [{ name: '冲锋衣', price: 459, quantity: 1 }] },
-  { id: 5, orderNo: 'SP20260604005', customer: '孙七', totalAmount: 678, status: 'paid', createTime: '2026-06-04 14:25', address: '杭州市西湖区文三路300号', items: [{ name: '篮球鞋', price: 499, quantity: 1 }, { name: '运动短裤', price: 79, quantity: 1 }, { name: '透气运动T恤', price: 100, quantity: 1 }] },
-  { id: 6, orderNo: 'SP20260604006', customer: '周八', totalAmount: 369, status: 'completed', createTime: '2026-06-04 09:50', address: '成都市武侯区人民路66号', items: [{ name: '户外登山包 50L', price: 369, quantity: 1 }] }
-])
+const orders = ref([])
+const total = ref(0)
+const loading = ref(false)
+const pageNum = ref(1)
+const pageSize = ref(10)
 
-const filteredOrders = computed(() => {
-  let result = orders.value
-  if (searchKeyword.value) {
-    const kw = searchKeyword.value.toLowerCase()
-    result = result.filter(o => o.orderNo.toLowerCase().includes(kw) || o.customer.includes(kw))
+// 加载订单数据
+const fetchOrders = async () => {
+  loading.value = true
+  try {
+    const params = {
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    }
+    if (selectedStatus.value !== '') {
+      params.orderStatus = Number(selectedStatus.value)
+    }
+    const res = await getOrderList(params)
+    orders.value = res.rows || []
+    total.value = res.total || 0
+  } catch (e) {
+    console.error('获取订单失败:', e)
+  } finally {
+    loading.value = false
   }
-  if (selectedStatus.value) {
-    result = result.filter(o => o.status === selectedStatus.value)
+}
+
+onMounted(() => fetchOrders())
+
+const filteredOrders = computed(() => orders.value)
+
+const statusText = (orderStatus) => {
+  const map = { 0: '待确认', 1: '已确认', 2: '已完成', 3: '已取消' }
+  return map[orderStatus] || '未知'
+}
+
+const statusTagType = (orderStatus) => {
+  const map = { 0: 'warning', 1: 'primary', 2: 'success', 3: 'info' }
+  return map[orderStatus] || 'info'
+}
+
+const handleViewDetail = async (row) => {
+  try {
+    const detail = await getOrderById(row.orderId)
+    currentOrder.value = detail
+    detailVisible.value = true
+  } catch (e) {
+    // 如果详情获取失败，用列表数据展示
+    currentOrder.value = row
+    detailVisible.value = true
   }
-  return result
-})
-
-const statusText = (status) => {
-  const map = { pending: '待付款', paid: '已付款', shipped: '已发货', completed: '已完成' }
-  return map[status] || status
 }
 
-const statusTagType = (status) => {
-  const map = { pending: 'warning', paid: 'primary', shipped: '', completed: 'success' }
-  return map[status] || 'info'
-}
-
-const handleViewDetail = (row) => {
-  currentOrder.value = row
-  detailVisible.value = true
-}
-
-const handleShip = (row) => {
-  ElMessageBox.confirm(`确认对订单 ${row.orderNo} 发货？`, '确认发货', {
+const handleConfirm = (row) => {
+  ElMessageBox.confirm(`确认订单 ${row.orderId}？`, '确认订单', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'info'
-  }).then(() => {
-    row.status = 'shipped'
+  }).then(async () => {
+    await confirmOrder(row.orderId)
+    ElMessage.success('订单已确认')
+    fetchOrders()
+  }).catch(() => {})
+}
+
+const handleShip = (row) => {
+  ElMessageBox.confirm(`确认对订单 ${row.orderId} 发货？`, '确认发货', {
+    confirmButtonText: '确定',
+    cancelButtonText: '取消',
+    type: 'info'
+  }).then(async () => {
+    await shipOrder(row.orderId)
     ElMessage.success('发货成功')
+    fetchOrders()
   }).catch(() => {})
 }
 
 const handleCancel = (row) => {
-  ElMessageBox.confirm(`确认取消订单 ${row.orderNo}？`, '取消订单', {
+  ElMessageBox.confirm(`确认取消订单 ${row.orderId}？`, '取消订单', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    orders.value = orders.value.filter(o => o.id !== row.id)
+  }).then(async () => {
+    await cancelOrder(row.orderId)
     ElMessage.success('订单已取消')
+    fetchOrders()
   }).catch(() => {})
 }
 </script>

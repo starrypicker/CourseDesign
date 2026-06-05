@@ -8,9 +8,9 @@
           <el-input v-model="searchKeyword" placeholder="搜索商品名称..." prefix-icon="Search" clearable />
         </el-col>
         <el-col :xs="24" :sm="6" :md="4">
-          <el-select v-model="selectedCategory" placeholder="分类筛选" clearable>
-            <el-option label="全部分类" value="" />
-            <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+          <el-select v-model="selectedCategory" placeholder="厂家筛选" clearable>
+            <el-option label="全部厂家" value="" />
+            <el-option v-for="m in manufacturerOptions" :key="m.manufacturerCode" :label="m.manufacturerName" :value="m.manufacturerCode" />
           </el-select>
         </el-col>
         <el-col :xs="24" :sm="10" :md="14" style="text-align: right;">
@@ -24,40 +24,44 @@
     <!-- 商品表格 -->
     <el-card shadow="never">
       <el-table :data="filteredProducts" stripe style="width: 100%">
-        <el-table-column prop="id" label="ID" width="60" />
+        <el-table-column prop="productCode" label="编码" width="80" />
         <el-table-column label="商品信息" min-width="200">
           <template #default="{ row }">
             <div style="display: flex; align-items: center; gap: 10px;">
               <div style="width: 40px; height: 40px; background: #f5f7fa; border-radius: 4px; display: flex; align-items: center; justify-content: center;">
                 <el-icon :size="20" color="#909399"><ShoppingBag /></el-icon>
               </div>
-              <span>{{ row.name }}</span>
+              <span>{{ row.productName }}</span>
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="category" label="分类" width="100">
+        <el-table-column prop="manufacturerName" label="厂家" width="100">
           <template #default="{ row }">
-            <el-tag size="small">{{ row.category }}</el-tag>
+            <el-tag size="small">{{ row.manufacturerName || '-' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="price" label="价格" width="100">
+        <el-table-column prop="unitPrice" label="价格" width="100">
           <template #default="{ row }">
-            <span style="color: #f56c6c; font-weight: 500;">¥ {{ row.price.toFixed(2) }}</span>
+            <span style="color: #f56c6c; font-weight: 500;">¥ {{ Number(row.unitPrice).toFixed(2) }}</span>
           </template>
         </el-table-column>
-        <el-table-column prop="stock" label="库存" width="80" />
+        <el-table-column prop="stockQuantity" label="库存" width="80">
+          <template #default="{ row }">
+            <span :style="{ color: row.stockQuantity <= row.minStock ? '#f56c6c' : '' }">{{ row.stockQuantity }}</span>
+          </template>
+        </el-table-column>
         <el-table-column prop="status" label="状态" width="90">
           <template #default="{ row }">
-            <el-tag :type="row.status === 'on' ? 'success' : 'info'" size="small">
-              {{ row.status === 'on' ? '上架' : '下架' }}
+            <el-tag :type="row.status === 1 ? 'success' : 'info'" size="small">
+              {{ row.status === 1 ? '上架' : '下架' }}
             </el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="180" fixed="right">
           <template #default="{ row }">
             <el-button text type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
-            <el-button text :type="row.status === 'on' ? 'warning' : 'success'" size="small" @click="handleToggleStatus(row)">
-              {{ row.status === 'on' ? '下架' : '上架' }}
+            <el-button text :type="row.status === 1 ? 'warning' : 'success'" size="small" @click="handleToggleStatus(row)">
+              {{ row.status === 1 ? '下架' : '上架' }}
             </el-button>
             <el-button text type="danger" size="small" @click="handleDelete(row)">删除</el-button>
           </template>
@@ -68,22 +72,31 @@
     <!-- 添加/编辑商品对话框 -->
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px" destroy-on-close>
       <el-form :model="productForm" :rules="productRules" ref="productFormRef" label-width="80px">
-        <el-form-item label="名称" prop="name">
-          <el-input v-model="productForm.name" placeholder="请输入商品名称" />
+        <el-form-item label="编码" prop="productCode" v-if="!editingId">
+          <el-input v-model="productForm.productCode" placeholder="请输入商品编码" />
         </el-form-item>
-        <el-form-item label="分类" prop="category">
-          <el-select v-model="productForm.category" placeholder="请选择分类" style="width: 100%;">
-            <el-option v-for="cat in categories" :key="cat" :label="cat" :value="cat" />
+        <el-form-item label="名称" prop="productName">
+          <el-input v-model="productForm.productName" placeholder="请输入商品名称" />
+        </el-form-item>
+        <el-form-item label="厂家" prop="manufacturerCode">
+          <el-select v-model="productForm.manufacturerCode" placeholder="请选择厂家" style="width: 100%;">
+            <el-option v-for="m in manufacturerOptions" :key="m.manufacturerCode" :label="m.manufacturerName" :value="m.manufacturerCode" />
           </el-select>
         </el-form-item>
-        <el-form-item label="价格" prop="price">
-          <el-input-number v-model="productForm.price" :min="0" :precision="2" style="width: 100%;" />
+        <el-form-item label="价格" prop="unitPrice">
+          <el-input-number v-model="productForm.unitPrice" :min="0" :precision="2" style="width: 100%;" />
         </el-form-item>
-        <el-form-item label="库存" prop="stock">
-          <el-input-number v-model="productForm.stock" :min="0" style="width: 100%;" />
+        <el-form-item label="库存" prop="stockQuantity">
+          <el-input-number v-model="productForm.stockQuantity" :min="0" style="width: 100%;" />
         </el-form-item>
-        <el-form-item label="描述" prop="description">
-          <el-input v-model="productForm.description" type="textarea" :rows="3" placeholder="请输入商品描述" />
+        <el-form-item label="最低库存" prop="minStock">
+          <el-input-number v-model="productForm.minStock" :min="0" style="width: 100%;" />
+        </el-form-item>
+        <el-form-item label="重量(kg)" prop="weight">
+          <el-input-number v-model="productForm.weight" :min="0" :precision="2" style="width: 100%;" />
+        </el-form-item>
+        <el-form-item label="描述" prop="productDesc">
+          <el-input v-model="productForm.productDesc" type="textarea" :rows="3" placeholder="请输入商品描述" />
         </el-form-item>
       </el-form>
       <template #footer>
@@ -95,9 +108,11 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, ShoppingBag } from '@element-plus/icons-vue'
+import { getProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
+import { getManufacturerList } from '@/api/manufacturer'
 
 const searchKeyword = ref('')
 const selectedCategory = ref('')
@@ -106,52 +121,77 @@ const dialogTitle = ref('添加商品')
 const productFormRef = ref(null)
 const editingId = ref(null)
 
-const categories = ['鞋类', '服装', '球类', '健身', '户外', '游泳']
+const products = ref([])
+const manufacturerOptions = ref([])
+const total = ref(0)
+const loading = ref(false)
+const pageNum = ref(1)
+const pageSize = ref(10)
 
-const products = ref([
-  { id: 1, name: '专业跑步鞋', price: 599, category: '鞋类', description: '轻量缓震，适合长跑训练', stock: 50, status: 'on' },
-  { id: 2, name: '透气运动T恤', price: 129, category: '服装', description: '速干透气面料，运动必备', stock: 120, status: 'on' },
-  { id: 3, name: '碳纤维羽毛球拍', price: 880, category: '球类', description: '超轻碳纤维材质，进攻利器', stock: 30, status: 'on' },
-  { id: 4, name: '加厚瑜伽垫', price: 89, category: '健身', description: '环保TPE材质，防滑加厚', stock: 200, status: 'on' },
-  { id: 5, name: '户外登山包 50L', price: 369, category: '户外', description: '大容量防水，登山徒步首选', stock: 45, status: 'on' },
-  { id: 6, name: '竞速泳镜', price: 158, category: '游泳', description: '防雾防紫外线，专业竞速', stock: 80, status: 'off' },
-  { id: 7, name: '篮球鞋', price: 499, category: '鞋类', description: '高帮护踝，室内外通用', stock: 60, status: 'on' },
-  { id: 8, name: '运动短裤', price: 79, category: '服装', description: '宽松舒适，速干透气', stock: 150, status: 'on' }
-])
+// 加载商品数据
+const fetchProducts = async () => {
+  loading.value = true
+  try {
+    const res = await getProductList({
+      productName: searchKeyword.value || undefined,
+      manufacturerCode: selectedCategory.value || undefined,
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    })
+    products.value = res.rows || []
+    total.value = res.total || 0
+  } catch (e) {
+    console.error('获取商品失败:', e)
+  } finally {
+    loading.value = false
+  }
+}
 
-const filteredProducts = computed(() => {
-  let result = products.value
-  if (searchKeyword.value) {
-    const kw = searchKeyword.value.toLowerCase()
-    result = result.filter(p => p.name.toLowerCase().includes(kw))
+// 加载厂家列表
+const fetchManufacturers = async () => {
+  try {
+    const res = await getManufacturerList()
+    manufacturerOptions.value = res || []
+  } catch (e) {
+    console.error('获取厂家列表失败:', e)
   }
-  if (selectedCategory.value) {
-    result = result.filter(p => p.category === selectedCategory.value)
-  }
-  return result
+}
+
+onMounted(() => {
+  fetchProducts()
+  fetchManufacturers()
 })
 
+const filteredProducts = computed(() => products.value)
+
 const productForm = reactive({
-  name: '',
-  category: '',
-  price: 0,
-  stock: 0,
-  description: ''
+  productCode: '',
+  productName: '',
+  manufacturerCode: '',
+  unitPrice: 0,
+  stockQuantity: 0,
+  minStock: 10,
+  weight: 0,
+  productDesc: ''
 })
 
 const productRules = {
-  name: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
-  category: [{ required: true, message: '请选择分类', trigger: 'change' }],
-  price: [{ required: true, message: '请输入价格', trigger: 'blur' }],
-  stock: [{ required: true, message: '请输入库存', trigger: 'blur' }]
+  productCode: [{ required: true, message: '请输入商品编码', trigger: 'blur' }],
+  productName: [{ required: true, message: '请输入商品名称', trigger: 'blur' }],
+  manufacturerCode: [{ required: true, message: '请选择厂家', trigger: 'change' }],
+  unitPrice: [{ required: true, message: '请输入价格', trigger: 'blur' }],
+  stockQuantity: [{ required: true, message: '请输入库存', trigger: 'blur' }]
 }
 
 const resetForm = () => {
-  productForm.name = ''
-  productForm.category = ''
-  productForm.price = 0
-  productForm.stock = 0
-  productForm.description = ''
+  productForm.productCode = ''
+  productForm.productName = ''
+  productForm.manufacturerCode = ''
+  productForm.unitPrice = 0
+  productForm.stockQuantity = 0
+  productForm.minStock = 10
+  productForm.weight = 0
+  productForm.productDesc = ''
 }
 
 const handleAdd = () => {
@@ -162,13 +202,16 @@ const handleAdd = () => {
 }
 
 const handleEdit = (row) => {
-  editingId.value = row.id
+  editingId.value = row.productCode
   dialogTitle.value = '编辑商品'
-  productForm.name = row.name
-  productForm.category = row.category
-  productForm.price = row.price
-  productForm.stock = row.stock
-  productForm.description = row.description
+  productForm.productCode = row.productCode
+  productForm.productName = row.productName
+  productForm.manufacturerCode = row.manufacturerCode
+  productForm.unitPrice = row.unitPrice
+  productForm.stockQuantity = row.stockQuantity
+  productForm.minStock = row.minStock
+  productForm.weight = row.weight
+  productForm.productDesc = row.productDesc
   dialogVisible.value = true
 }
 
@@ -176,48 +219,48 @@ const handleSubmit = async () => {
   if (!productFormRef.value) return
   try {
     await productFormRef.value.validate()
+    const data = {
+      productCode: productForm.productCode,
+      productName: productForm.productName,
+      manufacturerCode: productForm.manufacturerCode,
+      unitPrice: productForm.unitPrice,
+      stockQuantity: productForm.stockQuantity,
+      minStock: productForm.minStock,
+      weight: productForm.weight,
+      productDesc: productForm.productDesc
+    }
     if (editingId.value) {
-      const product = products.value.find(p => p.id === editingId.value)
-      if (product) {
-        Object.assign(product, {
-          name: productForm.name,
-          category: productForm.category,
-          price: productForm.price,
-          stock: productForm.stock,
-          description: productForm.description
-        })
-      }
+      await updateProduct(data)
       ElMessage.success('商品修改成功')
     } else {
-      const newId = Math.max(...products.value.map(p => p.id)) + 1
-      products.value.push({
-        id: newId,
-        name: productForm.name,
-        category: productForm.category,
-        price: productForm.price,
-        stock: productForm.stock,
-        description: productForm.description,
-        status: 'on'
-      })
+      await addProduct(data)
       ElMessage.success('商品添加成功')
     }
     dialogVisible.value = false
+    fetchProducts()
   } catch (e) {}
 }
 
-const handleToggleStatus = (row) => {
-  row.status = row.status === 'on' ? 'off' : 'on'
-  ElMessage.success(`商品已${row.status === 'on' ? '上架' : '下架'}`)
+const handleToggleStatus = async (row) => {
+  const newStatus = row.status === 1 ? 0 : 1
+  try {
+    await updateProduct({ ...row, status: newStatus })
+    ElMessage.success(`商品已${newStatus === 1 ? '上架' : '下架'}`)
+    fetchProducts()
+  } catch (e) {
+    console.error('状态切换失败:', e)
+  }
 }
 
 const handleDelete = (row) => {
-  ElMessageBox.confirm(`确定要删除商品"${row.name}"吗？`, '提示', {
+  ElMessageBox.confirm(`确定要删除商品"${row.productName}"吗？`, '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
-  }).then(() => {
-    products.value = products.value.filter(p => p.id !== row.id)
+  }).then(async () => {
+    await deleteProduct(row.productCode)
     ElMessage.success('删除成功')
+    fetchProducts()
   }).catch(() => {})
 }
 </script>

@@ -41,7 +41,7 @@ import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
-import request from '@/utils/request'   // 封装的 Axios 实例
+import { login } from '@/api/auth'
 
 const props = defineProps({
   role: {
@@ -81,34 +81,24 @@ const handleLogin = async () => {
     await formRef.value.validate()
     loading.value = true
 
-    // 调用登录接口，传递角色参数
-    const res = await request.post('/auth/login', {
+    // 调用后端登录接口
+    const res = await login({
       username: form.username,
       password: form.password,
       role: props.role
     })
 
-    // 假设返回数据：{ token: 'xxx', role: 'admin', userInfo: {...} }
-    const { token, role, userInfo } = res
-
-    // 通过 Vuex store 管理登录状态
-    store.dispatch('login', { token, role, userInfo })
-
+    // res 就是后端返回的 { token, userInfo }
+    store.dispatch('login', { token: res.token, userInfo: res.userInfo })
     ElMessage.success('登录成功')
 
-    // 根据角色跳转到对应首页，或跳转到之前访问的页面
     const redirect = route.query.redirect
-    if (redirect) {
-      router.push(redirect)
+    if (props.role === 'admin') {
+      router.push(redirect || '/admin/dashboard')
     } else {
-      if (role === 'admin') {
-        router.push('/admin/dashboard')
-      } else {
-        router.push('/home')
-      }
+      router.push(redirect || '/home')
     }
   } catch (error) {
-    // 错误已在拦截器中统一提示，此处可做额外处理
     console.error('登录失败:', error)
   } finally {
     loading.value = false

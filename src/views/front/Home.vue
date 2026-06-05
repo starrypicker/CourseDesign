@@ -14,14 +14,14 @@
       <h2>热门推荐</h2>
     </div>
     <el-row :gutter="20">
-      <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in mockProducts" :key="item.id">
+      <el-col :xs="24" :sm="12" :md="8" :lg="6" v-for="item in hotProducts" :key="item.productCode">
         <el-card class="product-card" shadow="hover">
           <div class="product-image">
             <el-icon :size="60" color="#909399"><ShoppingBag /></el-icon>
           </div>
           <div class="product-info">
-            <h3>{{ item.name }}</h3>
-            <p class="price">¥ {{ item.price.toFixed(2) }}</p>
+            <h3>{{ item.productName }}</h3>
+            <p class="price">¥ {{ Number(item.unitPrice).toFixed(2) }}</p>
             <el-button type="warning" plain size="small" @click="handleAddToCart(item)">
               加入购物车
             </el-button>
@@ -33,22 +33,29 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
 import { ShoppingBag } from '@element-plus/icons-vue'
+import { getProductList } from '@/api/product'
 
 const router = useRouter()
 const store = useStore()
 
-// 模拟商品数据（后续替换为后端API请求）
-const mockProducts = ref([
-  { id: 1, name: '专业跑步鞋', price: 599 },
-  { id: 2, name: '透气运动T恤', price: 129 },
-  { id: 3, name: '碳纤维羽毛球拍', price: 880 },
-  { id: 4, name: '加厚瑜伽垫', price: 89 }
-])
+// 热门推荐商品（从API获取前8个上架商品）
+const hotProducts = ref([])
+
+const fetchHotProducts = async () => {
+  try {
+    const res = await getProductList({ pageNum: 1, pageSize: 8, status: 1 })
+    hotProducts.value = res.rows || []
+  } catch (e) {
+    console.error('获取热门商品失败:', e)
+  }
+}
+
+onMounted(() => fetchHotProducts())
 
 // 跳转到商品列表页
 const goToProducts = () => {
@@ -57,8 +64,13 @@ const goToProducts = () => {
 
 // 加入购物车
 const handleAddToCart = (item) => {
-  store.dispatch('addToCart', { id: item.id, name: item.name, price: item.price })
-  ElMessage.success(`已将 ${item.name} 加入购物车！`)
+  store.dispatch('addToCart', {
+    productCode: item.productCode,
+    productName: item.productName,
+    unitPrice: item.unitPrice,
+    quantity: 1
+  })
+  ElMessage.success(`已将 ${item.productName} 加入购物车！`)
 }
 </script>
 

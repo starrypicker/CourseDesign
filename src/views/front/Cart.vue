@@ -19,13 +19,13 @@
               <div class="product-icon">
                 <el-icon :size="36" color="#909399"><ShoppingBag /></el-icon>
               </div>
-              <span class="product-name">{{ row.name }}</span>
+              <span class="product-name">{{ row.productName }}</span>
             </div>
           </template>
         </el-table-column>
         <el-table-column label="单价" width="120" align="center">
           <template #default="{ row }">
-            <span class="price">¥ {{ row.price.toFixed(2) }}</span>
+            <span class="price">¥ {{ Number(row.unitPrice).toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="数量" width="180" align="center">
@@ -35,18 +35,18 @@
               :min="1"
               :max="99"
               size="small"
-              @change="(val) => handleQuantityChange(row.id, val)"
+              @change="(val) => handleQuantityChange(row.productCode, val)"
             />
           </template>
         </el-table-column>
         <el-table-column label="小计" width="120" align="center">
           <template #default="{ row }">
-            <span class="price">¥ {{ (row.price * row.quantity).toFixed(2) }}</span>
+            <span class="price">¥ {{ (row.unitPrice * row.quantity).toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" align="center">
           <template #default="{ row }">
-            <el-button type="danger" link @click="handleRemove(row.id)">
+            <el-button type="danger" link @click="handleRemove(row.productCode)">
               <el-icon><Delete /></el-icon> 删除
             </el-button>
           </template>
@@ -90,12 +90,12 @@ const cart = computed(() => store.getters.cart)
 const cartCount = computed(() => store.getters.cartCount)
 const cartTotal = computed(() => store.getters.cartTotal)
 
-const handleQuantityChange = (productId, quantity) => {
-  store.dispatch('updateCartQuantity', { productId, quantity })
+const handleQuantityChange = (productCode, quantity) => {
+  store.dispatch('updateCartQuantity', { productCode, quantity })
 }
 
-const handleRemove = (productId) => {
-  store.dispatch('removeFromCart', productId)
+const handleRemove = (productCode) => {
+  store.dispatch('removeFromCart', productCode)
   ElMessage.success('已从购物车移除')
 }
 
@@ -110,8 +110,48 @@ const handleClearCart = () => {
   }).catch(() => {})
 }
 
-const handleCheckout = () => {
-  ElMessage.info('结算功能需要后端API支持，敬请期待！')
+const handleCheckout = async () => {
+  const userInfo = store.getters.userInfo
+  if (!userInfo) {
+    ElMessage.warning('请先登录')
+    router.push('/login')
+    return
+  }
+  if (cart.value.length === 0) {
+    ElMessage.warning('购物车是空的')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm('确认提交订单？', '提示', {
+      confirmButtonText: '确定下单',
+      cancelButtonText: '再想想',
+      type: 'info'
+    })
+  } catch {
+    return
+  }
+
+  try {
+    const { createOrder } = await import('@/api/order')
+    const orderData = {
+      customerCode: userInfo.customerCode,
+      recipientName: userInfo.contactName || userInfo.customerName,
+      recipientAddress: userInfo.address,
+      recipientPhone: userInfo.phone,
+      paymentMethod: 'online',
+      items: cart.value.map(item => ({
+        productCode: item.productCode,
+        quantity: item.quantity
+      }))
+    }
+    const orderId = await createOrder(orderData)
+    store.dispatch('clearCart')
+    ElMessage.success(`下单成功！订单号：${orderId}`)
+    router.push('/orders')
+  } catch (e) {
+    console.error('下单失败:', e)
+  }
 }
 </script>
 

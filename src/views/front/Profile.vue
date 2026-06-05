@@ -8,9 +8,9 @@
           <div class="user-avatar">
             <el-icon :size="64" color="#409EFF"><UserFilled /></el-icon>
           </div>
-          <h2 class="user-name">{{ userInfo?.username || '用户' }}</h2>
-          <el-tag type="primary" size="small">{{ userInfo?.role === 'admin' ? '管理员' : '普通用户' }}</el-tag>
-          <p class="user-join">注册时间：{{ userInfo?.createTime || '2026-06-01' }}</p>
+          <h2 class="user-name">{{ userInfo?.customerName || '用户' }}</h2>
+          <el-tag type="primary" size="small">顾客</el-tag>
+          <p class="user-join">编码：{{ userInfo?.customerCode || '-' }}</p>
         </el-card>
       </el-col>
 
@@ -21,17 +21,23 @@
             <!-- 基本信息 -->
             <el-tab-pane label="基本信息" name="info">
               <el-form :model="profileForm" label-width="100px" style="max-width: 500px; margin-top: 20px;">
-                <el-form-item label="用户名">
-                  <el-input v-model="profileForm.username" disabled />
+                <el-form-item label="顾客编码">
+                  <el-input v-model="profileForm.customerCode" disabled />
                 </el-form-item>
-                <el-form-item label="昵称">
-                  <el-input v-model="profileForm.nickname" placeholder="请输入昵称" />
+                <el-form-item label="顾客名称">
+                  <el-input v-model="profileForm.customerName" placeholder="请输入名称" />
+                </el-form-item>
+                <el-form-item label="联系人">
+                  <el-input v-model="profileForm.contactName" placeholder="请输入联系人" />
                 </el-form-item>
                 <el-form-item label="邮箱">
                   <el-input v-model="profileForm.email" placeholder="请输入邮箱" />
                 </el-form-item>
                 <el-form-item label="手机号">
                   <el-input v-model="profileForm.phone" placeholder="请输入手机号" />
+                </el-form-item>
+                <el-form-item label="地址">
+                  <el-input v-model="profileForm.address" placeholder="请输入地址" />
                 </el-form-item>
                 <el-form-item>
                   <el-button type="primary" @click="handleSaveProfile">保存修改</el-button>
@@ -76,10 +82,12 @@ const passwordFormRef = ref(null)
 const userInfo = computed(() => store.getters.userInfo)
 
 const profileForm = reactive({
-  username: userInfo.value?.username || 'user01',
-  nickname: userInfo.value?.nickname || '',
+  customerCode: userInfo.value?.customerCode || '',
+  customerName: userInfo.value?.customerName || '',
+  contactName: userInfo.value?.contactName || '',
   email: userInfo.value?.email || '',
-  phone: userInfo.value?.phone || ''
+  phone: userInfo.value?.phone || '',
+  address: userInfo.value?.address || ''
 })
 
 const passwordForm = reactive({
@@ -108,8 +116,26 @@ const passwordRules = {
   ]
 }
 
-const handleSaveProfile = () => {
-  ElMessage.success('个人信息保存成功（模拟）')
+const handleSaveProfile = async () => {
+  try {
+    const { updateCustomer } = await import('@/api/customer')
+    await updateCustomer({
+      customerCode: profileForm.customerCode,
+      customerName: profileForm.customerName,
+      contactName: profileForm.contactName,
+      email: profileForm.email,
+      phone: profileForm.phone,
+      address: profileForm.address
+    })
+    // 更新 store 中的 userInfo
+    store.dispatch('login', {
+      token: localStorage.getItem('token'),
+      userInfo: { ...userInfo.value, ...profileForm }
+    })
+    ElMessage.success('个人信息保存成功')
+  } catch (e) {
+    console.error('保存失败:', e)
+  }
 }
 
 const handleChangePassword = async () => {

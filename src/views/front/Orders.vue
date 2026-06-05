@@ -19,38 +19,38 @@
 
       <!-- 订单列表 -->
       <div v-if="filteredOrders.length > 0" class="order-list">
-        <el-card v-for="order in filteredOrders" :key="order.id" shadow="hover" class="order-card">
+        <el-card v-for="order in filteredOrders" :key="order.orderId" shadow="hover" class="order-card">
           <div class="order-top">
             <div class="order-meta">
-              <span class="order-no">订单号：{{ order.orderNo }}</span>
-              <span class="order-time">{{ order.createTime }}</span>
+              <span class="order-no">订单号：{{ order.orderId }}</span>
+              <span class="order-time">{{ order.orderDate }}</span>
             </div>
-            <el-tag :type="statusTagType(order.status)" size="small">{{ statusText(order.status) }}</el-tag>
+            <el-tag :type="statusTagType(order.orderStatus)" size="small">{{ statusText(order) }}</el-tag>
           </div>
           <el-divider />
           <div class="order-items">
-            <div v-for="item in order.items" :key="item.id" class="order-item">
+            <div v-for="item in (order.items || [])" :key="item.itemId" class="order-item">
               <div class="item-icon">
                 <el-icon :size="28" color="#909399"><ShoppingBag /></el-icon>
               </div>
               <div class="item-info">
-                <span class="item-name">{{ item.name }}</span>
+                <span class="item-name">{{ item.productName || item.productCode }}</span>
                 <span class="item-qty">x{{ item.quantity }}</span>
               </div>
-              <span class="item-price">¥ {{ (item.price * item.quantity).toFixed(2) }}</span>
+              <span class="item-price">¥ {{ Number(item.totalAmount).toFixed(2) }}</span>
             </div>
           </div>
           <el-divider />
           <div class="order-bottom">
             <span class="order-total">
-              共 {{ order.items.reduce((s, i) => s + i.quantity, 0) }} 件商品，合计：
-              <strong>¥ {{ order.totalAmount.toFixed(2) }}</strong>
+              共 {{ (order.items || []).reduce((s, i) => s + i.quantity, 0) }} 件商品，合计：
+              <strong>¥ {{ Number(order.totalAmount).toFixed(2) }}</strong>
             </span>
             <div class="order-actions">
-              <el-button v-if="order.status === 'pending'" type="primary" size="small" @click="handlePay(order)">
+              <el-button v-if="order.paymentStatus === 0" type="primary" size="small" @click="handlePay(order)">
                 去付款
               </el-button>
-              <el-button v-if="order.status === 'shipped'" type="success" size="small" @click="handleConfirm(order)">
+              <el-button v-if="order.shippingStatus === 1" type="success" size="small" @click="handleConfirm(order)">
                 确认收货
               </el-button>
               <el-button size="small" @click="handleViewDetail(order)">查看详情</el-button>
@@ -66,85 +66,113 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, computed, onMounted } from 'vue'
+import { useStore } from 'vuex'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { List, ShoppingBag } from '@element-plus/icons-vue'
+import { getOrderList, payOrder, completeOrder } from '@/api/order'
 
+const store = useStore()
 const activeTab = ref('all')
+const orders = ref([])
+const total = ref(0)
+const loading = ref(false)
+const pageNum = ref(1)
+const pageSize = ref(10)
 
-// 模拟订单数据
-const orders = ref([
-  {
-    id: 1,
-    orderNo: 'SP20260601001',
-    createTime: '2026-06-01 14:30:00',
-    status: 'completed',
-    totalAmount: 728,
-    items: [
-      { id: 1, name: '专业跑步鞋', price: 599, quantity: 1 },
-      { id: 2, name: '透气运动T恤', price: 129, quantity: 1 }
-    ]
-  },
-  {
-    id: 2,
-    orderNo: 'SP20260602001',
-    createTime: '2026-06-02 09:15:00',
-    status: 'shipped',
-    totalAmount: 880,
-    items: [
-      { id: 3, name: '碳纤维羽毛球拍', price: 880, quantity: 1 }
-    ]
-  },
-  {
-    id: 3,
-    orderNo: 'SP20260603001',
-    createTime: '2026-06-03 16:45:00',
-    status: 'paid',
-    totalAmount: 259,
-    items: [
-      { id: 9, name: '哑铃套装 20kg', price: 259, quantity: 1 }
-    ]
-  },
-  {
-    id: 4,
-    orderNo: 'SP20260604001',
-    createTime: '2026-06-04 10:20:00',
-    status: 'pending',
-    totalAmount: 459,
-    items: [
-      { id: 11, name: '冲锋衣', price: 459, quantity: 1 }
-    ]
+// 加载订单数据
+const fetchOrders = async () => {
+  loading.value = true
+  try {
+    const userInfo = store.getters.userInfo
+    const params = {
+      pageNum: pageNum.value,
+      pageSize: pageSize.value
+    }
+    // 如果是顾客登录，只查自己的订单
+    if (userInfo && userInfo.customerCode) {
+      params.customerCode = userInfo.customerCode
+    }
+    // 根据tab筛选
+    if (activeTab.value === 'pending') {
+      params.paymentStatus = 0
+    } else if (activeTab.value === 'paid') {
+      params.paymentStatus = 1
+      params.shippingStatus = 0
+    } else if (activeTab.value === 'shipped') {
+      params.shippingStatus = 1
+    } else if (activeTab.value === 'completed') {
+      params.orderStatus = 2
+    }
+    const res = await getOrderList(params)
+    orders.value = res.rows || []
+    total.value = res.total || 0
+  } catch (e) {
+    console.error('获取订单失败:', e)
+  } finally {
+    loading.value = false
   }
-])
-
-const filteredOrders = computed(() => {
-  if (activeTab.value === 'all') return orders.value
-  return orders.value.filter(o => o.status === activeTab.value)
-})
-
-const statusText = (status) => {
-  const map = { pending: '待付款', paid: '已付款', shipped: '已发货', completed: '已完成' }
-  return map[status] || status
 }
 
-const statusTagType = (status) => {
-  const map = { pending: 'warning', paid: 'primary', shipped: '', completed: 'success' }
-  return map[status] || 'info'
+onMounted(() => fetchOrders())
+
+const filteredOrders = computed(() => orders.value)
+
+// 综合状态文字：根据 paymentStatus + shippingStatus + orderStatus 判断
+const statusText = (order) => {
+  if (order.orderStatus === 3) return '已取消'
+  if (order.orderStatus === 2) return '已完成'
+  if (order.shippingStatus === 2) return '已签收'
+  if (order.shippingStatus === 1) return '已发货'
+  if (order.paymentStatus === 1) return '已付款'
+  if (order.orderStatus === 0) return '待确认'
+  return '待付款'
 }
 
-const handleTabChange = () => {}
-
-const handlePay = (order) => {
-  ElMessage.info(`订单 ${order.orderNo} 付款功能需要后端API支持`)
+const statusTagType = (orderStatus) => {
+  if (orderStatus === 3) return 'info'
+  if (orderStatus === 2) return 'success'
+  if (orderStatus === 0) return 'warning'
+  return 'primary'
 }
 
-const handleConfirm = (order) => {
-  ElMessage.success(`订单 ${order.orderNo} 已确认收货`)
-  order.status = 'completed'
+const handleTabChange = () => {
+  pageNum.value = 1
+  fetchOrders()
+}
+
+const handlePay = async (order) => {
+  try {
+    await ElMessageBox.confirm('确认支付该订单？', '支付确认', {
+      confirmButtonText: '确认支付',
+      cancelButtonText: '取消',
+      type: 'info'
+    })
+    await payOrder(order.orderId, 'online')
+    ElMessage.success('支付成功！')
+    fetchOrders()
+  } catch (e) {
+    if (e !== 'cancel') console.error('支付失败:', e)
+  }
+}
+
+const handleConfirm = async (order) => {
+  try {
+    await ElMessageBox.confirm('确认已收到货物？', '收货确认', {
+      confirmButtonText: '确认收货',
+      cancelButtonText: '取消',
+      type: 'info'
+    })
+    await completeOrder(order.orderId)
+    ElMessage.success('已确认收货！')
+    fetchOrders()
+  } catch (e) {
+    if (e !== 'cancel') console.error('确认收货失败:', e)
+  }
 }
 
 const handleViewDetail = (order) => {
-  ElMessage.info(`订单详情功能开发中`)
+  ElMessage.info(`订单 ${order.orderId} 详情功能开发中`)
 }
 </script>
 
