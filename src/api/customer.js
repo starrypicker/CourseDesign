@@ -24,3 +24,8 @@ export function updateCustomer(data) {
 export function deleteCustomer(customerCode) {
   return request.delete(`/customer/${customerCode}`)
 }
+
+// 修改密码
+export function changePassword(data) {
+  return request.put('/customer/change-password', data)
+}

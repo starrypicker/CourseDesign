@@ -10,13 +10,14 @@
         <result column="postal_code" property="postalCode"/>
         <result column="phone" property="phone"/>
         <result column="email" property="email"/>
+        <result column="password" property="password"/>
         <result column="status" property="status"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
     </resultMap>
 
     <sql id="Base_Column_List">
-        customer_code, customer_name, contact_name, address, postal_code, phone, email, status, create_time, update_time
+        customer_code, customer_name, contact_name, address, postal_code, phone, email, password, status, create_time, update_time
     </sql>
 
     <select id="selectList" resultMap="BaseResultMap" parameterType="com.sports.sales.dto.CustomerQueryDTO">
@@ -57,9 +58,14 @@
         FROM customer WHERE customer_code = #{customerCode}
     </select>
 
+    <select id="selectByCodeAndPassword" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM customer WHERE customer_code = #{customerCode} AND password = #{password}
+    </select>
+
     <insert id="insert" parameterType="com.sports.sales.entity.Customer">
-        INSERT INTO customer (customer_code, customer_name, contact_name, address, postal_code, phone, email, status)
-        VALUES (#{customerCode}, #{customerName}, #{contactName}, #{address}, #{postalCode}, #{phone}, #{email}, #{status})
+        INSERT INTO customer (customer_code, customer_name, contact_name, address, postal_code, phone, email, password, status)
+        VALUES (#{customerCode}, #{customerName}, #{contactName}, #{address}, #{postalCode}, #{phone}, #{email}, #{password}, #{status})
     </insert>
 
     <update id="updateByCode" parameterType="com.sports.sales.entity.Customer">
@@ -71,6 +77,7 @@
             <if test="postalCode != null">postal_code = #{postalCode},</if>
             <if test="phone != null">phone = #{phone},</if>
             <if test="email != null">email = #{email},</if>
+            <if test="password != null">password = #{password},</if>
             <if test="status != null">status = #{status},</if>
         </set>
         WHERE customer_code = #{customerCode}

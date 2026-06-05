@@ -33,7 +33,10 @@ public class CustomerServiceImpl implements CustomerService {
         }
         Long total = customerMapper.selectCount(query);
         List<Customer> rows = customerMapper.selectList(query);
-        rows.forEach(this::decryptSensitiveData);
+        rows.forEach(c -> {
+            decryptSensitiveData(c);
+            c.setPassword(null);
+        });
         return new PageResult<>(total, rows, query.getPageNum(), query.getPageSize());
     }
 
@@ -43,6 +46,7 @@ public class CustomerServiceImpl implements CustomerService {
         Customer customer = customerMapper.selectByCode(customerCode);
         if (customer != null) {
             decryptSensitiveData(customer);
+            customer.setPassword(null);
         }
         return customer;
     }
@@ -88,10 +92,47 @@ public class CustomerServiceImpl implements CustomerService {
 
     private void decryptSensitiveData(Customer customer) {
         if (customer.getPhone() != null) {
-            customer.setPhone(cryptoUtil.decrypt(customer.getPhone()));
+            customer.setPhone(tryDecrypt(customer.getPhone()));
         }
         if (customer.getEmail() != null) {
-            customer.setEmail(cryptoUtil.decrypt(customer.getEmail()));
+            customer.setEmail(tryDecrypt(customer.getEmail()));
         }
+    }
+
+    /**
+     * 尝试解密，如果数据是明文（未加密），则直接返回原文
+     */
+    private String tryDecrypt(String value) {
+        try {
+            return cryptoUtil.decrypt(value);
+        } catch (Exception e) {
+            // 解密失败说明是明文数据，直接返回
+            return value;
+        }
+    }
+
+    @Override
+    public Customer login(String customerCode, String password) {
+        log.info("顾客登录, customerCode={}", customerCode);
+        Customer customer = customerMapper.selectByCodeAndPassword(customerCode, password);
+        if (customer != null) {
+            decryptSensitiveData(customer);
+            // 不返回密码
+            customer.setPassword(null);
+        }
+        return customer;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "customer", key = "#customerCode")
+    public boolean changePassword(String customerCode, String oldPassword, String newPassword) {
+        log.info("修改密码, customerCode={}", customerCode);
+        Customer customer = customerMapper.selectByCodeAndPassword(customerCode, oldPassword);
+        if (customer == null) {
+            return false;
+        }
+        customer.setPassword(newPassword);
+        return customerMapper.updateByCode(customer) > 0;
     }
 }

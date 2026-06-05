@@ -1,47 +1,13 @@
 package com.sports.sales.config;
 
-import org.apache.catalina.Context;
-import org.apache.catalina.connector.Connector;
-import org.apache.tomcat.util.descriptor.web.SecurityCollection;
-import org.apache.tomcat.util.descriptor.web.SecurityConstraint;
-import org.springframework.boot.web.embedded.tomcat.TomcatServletWebServerFactory;
-import org.springframework.boot.web.servlet.server.ServletWebServerFactory;
-import org.springframework.context.annotation.Bean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.beans.factory.annotation.Value;
 
+/**
+ * HTTPS 配置 - 仅在 server.ssl.enabled=true 时生效
+ * 开发环境使用 HTTP 8080 端口，无需此配置
+ */
 @Configuration
+@ConditionalOnProperty(name = "server.ssl.enabled", havingValue = "true")
 public class HttpsConfig {
-
-    @Value("${server.port:443}")
-    private int httpsPort;
-
-    @Value("${http.port:80}")
-    private int httpPort;
-
-    @Bean
-    public ServletWebServerFactory servletContainer() {
-        TomcatServletWebServerFactory tomcat = new TomcatServletWebServerFactory() {
-            @Override
-            protected void postProcessContext(Context context) {
-                SecurityConstraint securityConstraint = new SecurityConstraint();
-                securityConstraint.setUserConstraint("CONFIDENTIAL");
-                SecurityCollection collection = new SecurityCollection();
-                collection.addPattern("/*");
-                securityConstraint.addCollection(collection);
-                context.addConstraint(securityConstraint);
-            }
-        };
-        tomcat.addAdditionalTomcatConnectors(redirectConnector());
-        return tomcat;
-    }
-
-    private Connector redirectConnector() {
-        Connector connector = new Connector("org.apache.coyote.http11.Http11NioProtocol");
-        connector.setScheme("http");
-        connector.setPort(httpPort);
-        connector.setSecure(false);
-        connector.setRedirectPort(httpsPort);
-        return connector;
-    }
 }

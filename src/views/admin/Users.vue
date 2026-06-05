@@ -83,6 +83,9 @@
         <el-form-item label="邮编" prop="postalCode">
           <el-input v-model="userForm.postalCode" placeholder="请输入邮编" />
         </el-form-item>
+        <el-form-item v-if="!editingId" label="密码" prop="password">
+          <el-input v-model="userForm.password" type="password" placeholder="请输入登录密码" show-password />
+        </el-form-item>
       </el-form>
       <template #footer>
         <el-button @click="dialogVisible = false">取消</el-button>
@@ -146,7 +149,8 @@ const userForm = reactive({
   email: '',
   phone: '',
   address: '',
-  postalCode: ''
+  postalCode: '',
+  password: ''
 })
 
 const userRules = {
@@ -163,6 +167,7 @@ const resetForm = () => {
   userForm.phone = ''
   userForm.address = ''
   userForm.postalCode = ''
+  userForm.password = ''
 }
 
 const handleAdd = () => {
@@ -197,6 +202,7 @@ const handleSubmit = async () => {
       phone: userForm.phone,
       address: userForm.address,
       postalCode: userForm.postalCode,
+      password: userForm.password || '123456',
       status: 1
     }
     if (editingId.value) {

@@ -47,6 +47,7 @@ CREATE TABLE customer (
     postal_code VARCHAR(10) DEFAULT NULL COMMENT '邮编',
     phone VARCHAR(200) DEFAULT NULL COMMENT '联系电话',
     email VARCHAR(200) DEFAULT NULL COMMENT '电子邮箱',
+    password VARCHAR(100) NOT NULL DEFAULT '123456' COMMENT '登录密码',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1-正常,0-禁用',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -136,7 +137,8 @@ INSERT INTO product (product_code, manufacturer_code, product_name, product_desc
 ('P007', 'M004', '阿迪达斯羽毛球拍', '阿迪达斯碳素羽毛球拍', 599.00, 30, 5, 0.09),
 ('P008', 'M004', '阿迪达斯瑜伽垫', '阿迪达斯TPE环保瑜伽垫', 259.00, 120, 20, 1.50);
 
-INSERT INTO customer (customer_code, customer_name, contact_name, address, postal_code, phone, email) VALUES
-('C001', '阳光体育用品店', '刘经理', '广州市天河区体育西路100号', '510620', '020-38889999', 'sun@sports.com'),
-('C002', '飞跃运动商城', '陈经理', '深圳市南山区科技园路50号', '518057', '0755-26886666', 'fly@sports.com'),
-('C003', '健身体育批发', '周经理', '成都市武侯区人民南路200号', '610041', '028-85557777', 'fit@sports.com');
+INSERT INTO customer (customer_code, customer_name, contact_name, address, postal_code, phone, email, password) VALUES
+('C001', '阳光体育用品店', '刘经理', '广州市天河区体育西路100号', '510620', '020-38889999', 'sun@sports.com', '123456'),
+('C002', '飞跃运动商城', '陈经理', '深圳市南山区科技园路50号', '518057', '0755-26886666', 'fly@sports.com', '123456'),
+('C003', '健身体育批发', '周经理', '成都市武侯区人民南路200号', '610041', '028-85557777', 'fit@sports.com', '123456');
+

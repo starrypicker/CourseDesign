@@ -3,7 +3,7 @@
     <div class="login-box">
       <!-- 标题 -->
       <h2 class="login-title">体育用品销售信息系统</h2>
-      
+
       <!-- 选项卡切换登录身份 -->
       <el-tabs v-model="activeTab" class="login-tabs" stretch>
         <el-tab-pane label="顾客登录" name="customer">
@@ -12,6 +12,9 @@
         <el-tab-pane label="管理员登录" name="admin">
           <LoginForm :role="'admin'" />
         </el-tab-pane>
+        <el-tab-pane label="顾客注册" name="register">
+          <RegisterForm />
+        </el-tab-pane>
       </el-tabs>
     </div>
   </div>
@@ -19,9 +22,9 @@
 
 <script setup>
 import { ref } from 'vue'
-import LoginForm from './components/LoginForm.vue'  // 登录表单组件
+import LoginForm from './components/LoginForm.vue'
+import RegisterForm from './components/RegisterForm.vue'
 
-// 当前激活的选项卡：customer 或 admin
 const activeTab = ref('customer')
 </script>
 

@@ -18,3 +18,15 @@
 2026-06-05 09:09:42.052 [https-jsse-nio-443-exec-3] INFO  c.s.s.service.impl.OrderServiceImpl - 取消订单, orderId=2
 2026-06-05 09:09:42.062 [https-jsse-nio-443-exec-3] INFO  c.s.s.service.impl.OrderServiceImpl - 库存回滚, productCode=P002, quantity=1
 2026-06-05 09:09:42.062 [https-jsse-nio-443-exec-3] INFO  c.s.s.service.impl.OrderServiceImpl - 订单取消成功, orderId=2
+2026-06-05 16:06:21.455 [http-nio-8080-exec-6] INFO  c.s.s.s.impl.ProductServiceImpl - 更新商品, productCode=P001
+2026-06-05 16:06:27.078 [http-nio-8080-exec-10] INFO  c.s.s.s.impl.ProductServiceImpl - 更新商品, productCode=P002
+2026-06-05 16:13:39.865 [http-nio-8080-exec-9] INFO  c.s.s.s.impl.ProductServiceImpl - 添加商品, productCode=k001, productName=羽毛球
+2026-06-05 16:13:39.898 [http-nio-8080-exec-9] INFO  c.s.s.s.impl.ProductServiceImpl - 商品添加成功, productCode=k001
+2026-06-05 16:17:17.799 [http-nio-8080-exec-8] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A001, customerName=欧行
+2026-06-05 16:17:17.827 [http-nio-8080-exec-8] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客添加成功, customerCode=A001
+2026-06-05 16:18:09.747 [http-nio-8080-exec-4] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客登录, customerCode=001
+2026-06-05 16:18:53.201 [http-nio-8080-exec-7] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客登录, customerCode=欧行
+2026-06-05 16:19:33.576 [http-nio-8080-exec-1] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客登录, customerCode=A001
+2026-06-05 16:19:39.340 [http-nio-8080-exec-2] INFO  c.s.s.service.impl.OrderServiceImpl - 开始创建订单, customerCode=A001, 商品数=1
+2026-06-05 16:19:39.391 [http-nio-8080-exec-2] INFO  c.s.s.service.impl.OrderServiceImpl - 订单创建成功, orderId=1, canSupply=true, totalAmount=185.00
+2026-06-05 16:19:43.248 [http-nio-8080-exec-3] INFO  c.s.s.service.impl.OrderServiceImpl - 订单付款, orderId=1, paymentMethod=online

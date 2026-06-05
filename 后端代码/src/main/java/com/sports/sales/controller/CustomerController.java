@@ -7,6 +7,8 @@ import com.sports.sales.entity.Customer;
 import com.sports.sales.service.CustomerService;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/customer")
 public class CustomerController {
@@ -45,5 +47,14 @@ public class CustomerController {
     public Result<Void> delete(@PathVariable String customerCode) {
         log.info("收到删除顾客请求, customerCode={}", customerCode);
         return customerService.delete(customerCode) ? Result.success() : Result.error("删除失败");
+    }
+
+    @PutMapping("/change-password")
+    public Result<Void> changePassword(@RequestBody Map<String, String> passwordData) {
+        String customerCode = passwordData.get("customerCode");
+        String oldPassword = passwordData.get("oldPassword");
+        String newPassword = passwordData.get("newPassword");
+        log.info("收到修改密码请求, customerCode={}", customerCode);
+        return customerService.changePassword(customerCode, oldPassword, newPassword) ? Result.success() : Result.error("原密码错误");
     }
 }

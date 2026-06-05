@@ -42,7 +42,7 @@
             </if>
         </where>
         ORDER BY p.create_time DESC
-        LIMIT #{pageSize} OFFSET #{pageNum}
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
     <select id="selectCount" resultType="java.lang.Long" parameterType="com.sports.sales.dto.ProductQueryDTO">

@@ -142,12 +142,18 @@ const handleChangePassword = async () => {
   if (!passwordFormRef.value) return
   try {
     await passwordFormRef.value.validate()
-    ElMessage.success('密码修改成功（模拟）')
+    const { changePassword } = await import('@/api/customer')
+    await changePassword({
+      customerCode: userInfo.value?.customerCode,
+      oldPassword: passwordForm.oldPassword,
+      newPassword: passwordForm.newPassword
+    })
+    ElMessage.success('密码修改成功')
     passwordForm.oldPassword = ''
     passwordForm.newPassword = ''
     passwordForm.confirmPassword = ''
   } catch (e) {
-    // 验证失败
+    console.error('修改密码失败:', e)
   }
 }
 </script>

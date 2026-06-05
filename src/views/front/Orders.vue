@@ -62,6 +62,41 @@
       <!-- 空状态 -->
       <el-empty v-else description="暂无订单" />
     </el-card>
+
+    <!-- 订单详情弹窗 -->
+    <el-dialog v-model="detailVisible" title="订单详情" width="600px">
+      <template v-if="detailOrder">
+        <el-descriptions :column="2" border>
+          <el-descriptions-item label="订单号">{{ detailOrder.orderId }}</el-descriptions-item>
+          <el-descriptions-item label="下单时间">{{ detailOrder.orderDate }}</el-descriptions-item>
+          <el-descriptions-item label="订单状态">
+            <el-tag :type="statusTagType(detailOrder.orderStatus)" size="small">{{ statusText(detailOrder) }}</el-tag>
+          </el-descriptions-item>
+          <el-descriptions-item label="付款状态">{{ detailOrder.paymentStatus === 1 ? '已付款' : '未付款' }}</el-descriptions-item>
+          <el-descriptions-item label="发货状态">{{ detailOrder.shippingStatus === 0 ? '未发货' : detailOrder.shippingStatus === 1 ? '已发货' : '已签收' }}</el-descriptions-item>
+          <el-descriptions-item label="支付方式">{{ detailOrder.paymentMethod || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="收件人">{{ detailOrder.recipientName || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="收件电话">{{ detailOrder.recipientPhone || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="收件地址" :span="2">{{ detailOrder.recipientAddress || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="备注" :span="2">{{ detailOrder.remark || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <h4 style="margin: 16px 0 8px">商品明细</h4>
+        <el-table :data="detailOrder.items || []" border size="small">
+          <el-table-column prop="productCode" label="商品编码" width="100" />
+          <el-table-column prop="productName" label="商品名称" />
+          <el-table-column prop="quantity" label="数量" width="80" />
+          <el-table-column prop="unitPrice" label="单价" width="100">
+            <template #default="{ row }">¥ {{ Number(row.unitPrice).toFixed(2) }}</template>
+          </el-table-column>
+          <el-table-column prop="totalAmount" label="小计" width="100">
+            <template #default="{ row }">¥ {{ Number(row.totalAmount).toFixed(2) }}</template>
+          </el-table-column>
+        </el-table>
+        <div style="text-align: right; margin-top: 12px; font-size: 16px">
+          合计：<strong style="color: #f56c6c">¥ {{ Number(detailOrder.totalAmount).toFixed(2) }}</strong>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -70,7 +105,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { List, ShoppingBag } from '@element-plus/icons-vue'
-import { getOrderList, payOrder, completeOrder } from '@/api/order'
+import { getOrderList, payOrder, completeOrder, getOrderById } from '@/api/order'
 
 const store = useStore()
 const activeTab = ref('all')
@@ -171,9 +206,18 @@ const handleConfirm = async (order) => {
   }
 }
 
-const handleViewDetail = (order) => {
-  ElMessage.info(`订单 ${order.orderId} 详情功能开发中`)
+const handleViewDetail = async (order) => {
+  try {
+    const detail = await getOrderById(order.orderId)
+    detailOrder.value = detail
+    detailVisible.value = true
+  } catch (e) {
+    console.error('获取订单详情失败:', e)
+  }
 }
+
+const detailVisible = ref(false)
+const detailOrder = ref(null)
 </script>
 
 <style scoped>
