@@ -38,7 +38,7 @@ public class CryptoUtil {
             return Base64.getEncoder().encodeToString(encrypted);
         } catch (Exception e) {
             log.error("加密失败", e);
-            return plainText;
+            throw new RuntimeException("加密失败", e);
         }
     }
 
@@ -58,7 +58,7 @@ public class CryptoUtil {
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error("解密失败", e);
-            return cipherText;
+            throw new RuntimeException("解密失败", e);
         }
     }
 }

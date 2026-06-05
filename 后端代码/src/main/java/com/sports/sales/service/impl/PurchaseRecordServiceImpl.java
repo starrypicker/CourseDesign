@@ -1,10 +1,11 @@
 package com.sports.sales.service.impl;
 
 import com.sports.sales.entity.PurchaseRecord;
-import com.sports.sales.entity.Product;
 import com.sports.sales.mapper.PurchaseRecordMapper;
 import com.sports.sales.mapper.ProductMapper;
 import com.sports.sales.service.PurchaseRecordService;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,10 +18,12 @@ public class PurchaseRecordServiceImpl implements PurchaseRecordService {
 
     private final PurchaseRecordMapper purchaseRecordMapper;
     private final ProductMapper productMapper;
+    private final CacheManager cacheManager;
 
-    public PurchaseRecordServiceImpl(PurchaseRecordMapper purchaseRecordMapper, ProductMapper productMapper) {
+    public PurchaseRecordServiceImpl(PurchaseRecordMapper purchaseRecordMapper, ProductMapper productMapper, CacheManager cacheManager) {
         this.purchaseRecordMapper = purchaseRecordMapper;
         this.productMapper = productMapper;
+        this.cacheManager = cacheManager;
     }
 
     @Override
@@ -57,7 +60,19 @@ public class PurchaseRecordServiceImpl implements PurchaseRecordService {
         }
         purchaseRecordMapper.updateStatus(id, 1);
         productMapper.updateStock(record.getProductCode(), record.getQuantity());
+        evictProductCache();
         log.info("进货确认完成, id={}, productCode={}, quantity={}", id, record.getProductCode(), record.getQuantity());
         return true;
+    }
+
+    private void evictProductCache() {
+        Cache productCache = cacheManager.getCache("product");
+        Cache lowStockCache = cacheManager.getCache("lowStockProducts");
+        if (productCache != null) {
+            productCache.clear();
+        }
+        if (lowStockCache != null) {
+            lowStockCache.clear();
+        }
     }
 }

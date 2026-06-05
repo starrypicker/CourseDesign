@@ -75,7 +75,7 @@ java -jar target/sports-sales-1.0.0.jar
 
 ### 5. 验证启动
 
-访问 `http://localhost:8081/api/product/list`，返回JSON数据即启动成功。
+访问 `https://localhost/api/product/list`（浏览器提示证书不安全时点击继续访问），返回JSON数据即启动成功。
 
 ## 项目结构
 

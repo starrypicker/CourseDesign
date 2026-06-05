@@ -30,11 +30,11 @@
                 AND customer_name LIKE CONCAT('%', #{customerName}, '%')
             </if>
             <if test="phone != null and phone != ''">
-                AND phone LIKE CONCAT('%', #{phone}, '%')
+                AND phone = #{phone}
             </if>
         </where>
         ORDER BY create_time DESC
-        LIMIT #{pageSize} OFFSET #{pageNum}
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
     <select id="selectCount" resultType="java.lang.Long" parameterType="com.sports.sales.dto.CustomerQueryDTO">
@@ -47,7 +47,7 @@
                 AND customer_name LIKE CONCAT('%', #{customerName}, '%')
             </if>
             <if test="phone != null and phone != ''">
-                AND phone LIKE CONCAT('%', #{phone}, '%')
+                AND phone = #{phone}
             </if>
         </where>
     </select>

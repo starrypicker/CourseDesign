@@ -15,6 +15,10 @@ public class OrderQueryDTO implements Serializable {
     private Integer pageNum = 1;
     private Integer pageSize = 10;
 
+    public Integer getOffset() {
+        return (pageNum - 1) * pageSize;
+    }
+
     public Long getOrderId() {
         return orderId;
     }

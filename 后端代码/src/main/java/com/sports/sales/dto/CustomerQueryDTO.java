@@ -11,6 +11,10 @@ public class CustomerQueryDTO implements Serializable {
     private Integer pageNum = 1;
     private Integer pageSize = 10;
 
+    public Integer getOffset() {
+        return (pageNum - 1) * pageSize;
+    }
+
     public String getCustomerCode() {
         return customerCode;
     }

@@ -28,11 +28,13 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public PageResult<Customer> list(CustomerQueryDTO query) {
-        query.setPageNum((query.getPageNum() - 1) * query.getPageSize());
+        if (query.getPhone() != null && !query.getPhone().isEmpty()) {
+            query.setPhone(cryptoUtil.encrypt(query.getPhone()));
+        }
         Long total = customerMapper.selectCount(query);
         List<Customer> rows = customerMapper.selectList(query);
         rows.forEach(this::decryptSensitiveData);
-        return new PageResult<>(total, rows, query.getPageNum() / query.getPageSize() + 1, query.getPageSize());
+        return new PageResult<>(total, rows, query.getPageNum(), query.getPageSize());
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.sports.sales.config;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.AsyncConfigurer;
@@ -15,20 +16,32 @@ import java.util.concurrent.ThreadPoolExecutor;
 @EnableAsync
 public class ThreadPoolConfig implements AsyncConfigurer {
 
+    @Value("${thread-pool.core-size:5}")
+    private int coreSize;
+
+    @Value("${thread-pool.max-size:20}")
+    private int maxSize;
+
+    @Value("${thread-pool.queue-capacity:100}")
+    private int queueCapacity;
+
+    @Value("${thread-pool.keep-alive-seconds:60}")
+    private int keepAliveSeconds;
+
     @Override
     @Bean("taskExecutor")
     public Executor getAsyncExecutor() {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
-        executor.setCorePoolSize(5);
-        executor.setMaxPoolSize(20);
-        executor.setQueueCapacity(100);
-        executor.setKeepAliveSeconds(60);
+        executor.setCorePoolSize(coreSize);
+        executor.setMaxPoolSize(maxSize);
+        executor.setQueueCapacity(queueCapacity);
+        executor.setKeepAliveSeconds(keepAliveSeconds);
         executor.setThreadNamePrefix("sports-async-");
         executor.setRejectedExecutionHandler(new ThreadPoolExecutor.CallerRunsPolicy());
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(60);
         executor.initialize();
-        log.info("线程池初始化完成");
+        log.info("线程池初始化完成, coreSize={}, maxSize={}, queueCapacity={}", coreSize, maxSize, queueCapacity);
         return executor;
     }
 }

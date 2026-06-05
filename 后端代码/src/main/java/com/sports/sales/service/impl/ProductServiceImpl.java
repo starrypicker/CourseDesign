@@ -8,6 +8,7 @@ import com.sports.sales.service.ProductService;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,10 +31,9 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public PageResult<Product> list(ProductQueryDTO query) {
-        query.setPageNum((query.getPageNum() - 1) * query.getPageSize());
         Long total = productMapper.selectCount(query);
         List<Product> rows = productMapper.selectList(query);
-        return new PageResult<>(total, rows, query.getPageNum() / query.getPageSize() + 1, query.getPageSize());
+        return new PageResult<>(total, rows, query.getPageNum(), query.getPageSize());
     }
 
     @Override
@@ -44,7 +44,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "product", key = "#product.productCode")
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#product.productCode"),
+            @CacheEvict(value = "lowStockProducts", allEntries = true)
+    })
     public boolean add(Product product) {
         log.info("添加商品, productCode={}, productName={}", product.getProductCode(), product.getProductName());
         product.setStatus(1);
@@ -57,7 +60,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "product", key = "#product.productCode")
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#product.productCode"),
+            @CacheEvict(value = "lowStockProducts", allEntries = true)
+    })
     public boolean update(Product product) {
         log.info("更新商品, productCode={}", product.getProductCode());
         return productMapper.updateByCode(product) > 0;
@@ -65,7 +71,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = "product", key = "#productCode")
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#productCode"),
+            @CacheEvict(value = "lowStockProducts", allEntries = true)
+    })
     public boolean delete(String productCode) {
         log.info("删除商品, productCode={}", productCode);
         return productMapper.deleteByCode(productCode) > 0;
@@ -79,7 +88,10 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    @CacheEvict(value = {"product", "lowStockProducts"}, key = "#productCode")
+    @Caching(evict = {
+            @CacheEvict(value = "product", key = "#productCode"),
+            @CacheEvict(value = "lowStockProducts", allEntries = true)
+    })
     public boolean replenishStock(String productCode, Integer quantity) {
         String lockKey = "lock:stock:" + productCode;
         RLock lock = redissonClient.getLock(lockKey);
