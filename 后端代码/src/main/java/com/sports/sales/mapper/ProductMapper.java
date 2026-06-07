@@ -21,6 +21,11 @@ public interface ProductMapper {
 
     int deleteByCode(@Param("productCode") String productCode);
 
+    /**
+     * 软删除：将商品下架(status=0)
+     */
+    int softDeleteByCode(@Param("productCode") String productCode);
+
     int updateStock(@Param("productCode") String productCode, @Param("quantity") Integer quantity);
 
     List<Product> selectLowStock();

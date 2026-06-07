@@ -10,7 +10,7 @@
     <el-form-item prop="username">
       <el-input
         v-model="form.username"
-        prefix-icon="User"
+        :prefix-icon="User"
         placeholder="请输入用户名"
       />
     </el-form-item>
@@ -18,7 +18,7 @@
       <el-input
         v-model="form.password"
         type="password"
-        prefix-icon="Lock"
+        :prefix-icon="Lock"
         placeholder="请输入密码"
         show-password
       />
@@ -41,6 +41,7 @@ import { ref, reactive } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
+import { User, Lock } from '@element-plus/icons-vue'
 import { login } from '@/api/auth'
 
 const props = defineProps({

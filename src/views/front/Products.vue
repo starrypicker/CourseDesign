@@ -8,7 +8,7 @@
           <el-input
             v-model="searchKeyword"
             placeholder="搜索商品名称..."
-            prefix-icon="Search"
+            :prefix-icon="Search"
             clearable
             @clear="handleSearch"
             @keyup.enter="handleSearch"

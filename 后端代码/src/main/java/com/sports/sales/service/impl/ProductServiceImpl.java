@@ -76,8 +76,10 @@ public class ProductServiceImpl implements ProductService {
             @CacheEvict(value = "lowStockProducts", allEntries = true)
     })
     public boolean delete(String productCode) {
-        log.info("删除商品, productCode={}", productCode);
-        return productMapper.deleteByCode(productCode) > 0;
+        log.info("下架商品(软删除), productCode={}", productCode);
+        // 使用软删除（下架），避免因 order_item 外键约束导致物理删除失败
+        // 物理删除仅在没有订单关联时才允许
+        return productMapper.softDeleteByCode(productCode) > 0;
     }
 
     @Override

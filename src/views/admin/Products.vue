@@ -5,7 +5,7 @@
     <el-card shadow="never" class="toolbar-card">
       <el-row :gutter="16" align="middle">
         <el-col :xs="24" :sm="8" :md="6">
-          <el-input v-model="searchKeyword" placeholder="搜索商品名称..." prefix-icon="Search" clearable />
+          <el-input v-model="searchKeyword" placeholder="搜索商品名称..." :prefix-icon="Search" clearable />
         </el-col>
         <el-col :xs="24" :sm="6" :md="4">
           <el-select v-model="selectedCategory" placeholder="厂家筛选" clearable>
@@ -110,7 +110,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, ShoppingBag } from '@element-plus/icons-vue'
+import { Plus, Search, ShoppingBag } from '@element-plus/icons-vue'
 import { getProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
 import { getManufacturerList } from '@/api/manufacturer'
 

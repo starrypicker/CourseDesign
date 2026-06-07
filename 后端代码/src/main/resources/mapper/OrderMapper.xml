@@ -151,7 +151,7 @@
             <if test="orderStatus != null">order_status = #{orderStatus},</if>
             <if test="recipientName != null">recipient_name = #{recipientName},</if>
             <if test="recipientAddress != null">recipient_address = #{recipientAddress},</if>
-            <if test="recipientPhone != null">recipient_phone = #{recipientPhone},</if>
+            <!-- recipientPhone 不通过 updateById 更新，避免解密后数据被误写回 -->
             <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
             <if test="paymentTime != null">payment_time = #{paymentTime},</if>
             <if test="remark != null">remark = #{remark},</if>

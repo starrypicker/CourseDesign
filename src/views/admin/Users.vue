@@ -5,7 +5,7 @@
     <el-card shadow="never" class="toolbar-card">
       <el-row :gutter="16" align="middle">
         <el-col :xs="24" :sm="8" :md="6">
-          <el-input v-model="searchKeyword" placeholder="搜索用户名/手机号..." prefix-icon="Search" clearable />
+          <el-input v-model="searchKeyword" placeholder="搜索用户名/手机号..." :prefix-icon="Search" clearable />
         </el-col>
         <el-col :xs="24" :sm="6" :md="4">
           <el-select v-model="selectedStatus" placeholder="状态筛选" clearable>
@@ -98,7 +98,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, User } from '@element-plus/icons-vue'
+import { Plus, Search, User } from '@element-plus/icons-vue'
 import { getCustomerList, addCustomer, updateCustomer, deleteCustomer } from '@/api/customer'
 
 const searchKeyword = ref('')

@@ -5,7 +5,7 @@
     <el-card shadow="never" class="toolbar-card">
       <el-row :gutter="16" align="middle">
         <el-col :xs="24" :sm="8" :md="6">
-          <el-input v-model="searchKeyword" placeholder="搜索订单号/客户名..." prefix-icon="Search" clearable />
+          <el-input v-model="searchKeyword" placeholder="搜索订单号/客户名..." :prefix-icon="Search" clearable />
         </el-col>
         <el-col :xs="24" :sm="6" :md="4">
           <el-select v-model="selectedStatus" placeholder="订单状态" clearable>
@@ -117,6 +117,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Search } from '@element-plus/icons-vue'
 import { getOrderList, getOrderById, confirmOrder, shipOrder, cancelOrder } from '@/api/order'
 
 const searchKeyword = ref('')
