@@ -29,4 +29,6 @@ public interface OrderService {
     List<Orders> getUnshippedOrders();
 
     List<Orders> getCompletedOrders();
+
+    java.util.Map<String, Object> getDashboardStats();
 }

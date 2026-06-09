@@ -5,6 +5,7 @@ import com.sports.sales.common.Result;
 import com.sports.sales.dto.ProductQueryDTO;
 import com.sports.sales.entity.Product;
 import com.sports.sales.service.ProductService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -32,13 +33,13 @@ public class ProductController {
     }
 
     @PostMapping
-    public Result<Void> add(@RequestBody Product product) {
+    public Result<Void> add(@Valid @RequestBody Product product) {
         log.info("收到添加商品请求, productCode={}", product.getProductCode());
         return productService.add(product) ? Result.success() : Result.error("添加失败");
     }
 
     @PutMapping
-    public Result<Void> update(@RequestBody Product product) {
+    public Result<Void> update(@Valid @RequestBody Product product) {
         log.info("收到更新商品请求, productCode={}", product.getProductCode());
         return productService.update(product) ? Result.success() : Result.error("更新失败");
     }

@@ -76,7 +76,7 @@ export default createStore({
     userInfo: state => state.userInfo,
     // ========== 购物车 ==========
     cart: state => state.cart,
-    cartCount: state => state.cart.reduce((sum, i) => sum + i.quantity, 0),
-    cartTotal: state => state.cart.reduce((sum, i) => sum + i.unitPrice * i.quantity, 0)
+    cartCount: state => state.cart.reduce((sum, i) => sum + (i.quantity || 0), 0),
+    cartTotal: state => state.cart.reduce((sum, i) => sum + Number(i.unitPrice || 0) * (i.quantity || 0), 0)
   }
 })

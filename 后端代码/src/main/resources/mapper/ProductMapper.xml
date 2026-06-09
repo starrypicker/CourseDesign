@@ -105,8 +105,11 @@
         DELETE FROM product WHERE product_code = #{productCode}
     </delete>
 
-    <!-- 软删除：下架商品，保留数据以便订单历史查询 -->
-    <update id="softDeleteByCode">
-        UPDATE product SET status = 0 WHERE product_code = #{productCode}
-    </update>
+    <select id="selectLowStockCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM product WHERE stock_quantity &lt;= min_stock AND status = 1
+    </select>
+
+    <select id="selectTotalCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM product
+    </select>
 </mapper>

@@ -54,3 +54,8 @@ export function getUnshippedOrders() {
 export function getCompletedOrders() {
   return request.get('/order/completed')
 }
+
+// 获取仪表盘统计数据
+export function getDashboardStats() {
+  return request.get('/order/dashboard-stats')
+}

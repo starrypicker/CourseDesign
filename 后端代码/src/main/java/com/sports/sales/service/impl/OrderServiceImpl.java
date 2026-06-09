@@ -238,6 +238,9 @@ public class OrderServiceImpl implements OrderService {
         if (order.getOrderStatus() == 3) {
             throw new RuntimeException("订单已取消，无法付款");
         }
+        if (order.getOrderStatus() != 1) {
+            throw new RuntimeException("订单未确认，无法付款");
+        }
         if (order.getPaymentStatus() != 0) {
             throw new RuntimeException("订单付款状态不正确");
         }
@@ -309,6 +312,37 @@ public class OrderServiceImpl implements OrderService {
         if (order.getRecipientPhone() != null) {
             order.setRecipientPhone(cryptoUtil.decrypt(order.getRecipientPhone()));
         }
+    }
+
+    @Override
+    public java.util.Map<String, Object> getDashboardStats() {
+        java.util.Map<String, Object> stats = new java.util.LinkedHashMap<>();
+
+        // 今日订单数
+        long todayOrders = orderMapper.selectTodayOrderCount();
+        stats.put("todayOrders", todayOrders);
+
+        // 今日销售额
+        java.math.BigDecimal todaySales = orderMapper.selectTodaySales();
+        stats.put("todaySales", todaySales != null ? todaySales : java.math.BigDecimal.ZERO);
+
+        // 待处理订单（待确认 + 未发货）
+        long pendingOrders = orderMapper.selectPendingOrderCount();
+        stats.put("pendingOrders", pendingOrders);
+
+        // 低库存商品数
+        long lowStockCount = productMapper.selectLowStockCount();
+        stats.put("lowStockCount", lowStockCount);
+
+        // 总商品数
+        long totalProducts = productMapper.selectTotalCount();
+        stats.put("totalProducts", totalProducts);
+
+        // 总顾客数
+        long totalCustomers = orderMapper.selectCustomerCount();
+        stats.put("totalCustomers", totalCustomers);
+
+        return stats;
     }
 
     private void evictProductCache() {

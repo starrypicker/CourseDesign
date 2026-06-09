@@ -30,6 +30,10 @@
           <el-icon><User /></el-icon>
           <span>顾客管理</span>
         </el-menu-item>
+        <el-menu-item index="/admin/purchase">
+          <el-icon><Box /></el-icon>
+          <span>进货管理</span>
+        </el-menu-item>
       </el-menu>
     </aside>
 
@@ -72,7 +76,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { DataAnalysis, Goods, List, User, Trophy, UserFilled, ArrowDown } from '@element-plus/icons-vue'
+import { DataAnalysis, Goods, List, User, Box, Trophy, UserFilled, ArrowDown } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

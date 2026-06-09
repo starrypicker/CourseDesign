@@ -29,4 +29,10 @@ public interface ProductMapper {
     int updateStock(@Param("productCode") String productCode, @Param("quantity") Integer quantity);
 
     List<Product> selectLowStock();
+
+    /** 低库存商品数量 */
+    long selectLowStockCount();
+
+    /** 商品总数 */
+    long selectTotalCount();
 }

@@ -5,15 +5,19 @@
     <el-card shadow="never" class="toolbar-card">
       <el-row :gutter="16" align="middle">
         <el-col :xs="24" :sm="8" :md="6">
-          <el-input v-model="searchKeyword" placeholder="搜索商品名称..." :prefix-icon="Search" clearable />
+          <el-input v-model="searchKeyword" placeholder="搜索商品名称..." clearable @keyup.enter="handleSearch" />
         </el-col>
         <el-col :xs="24" :sm="6" :md="4">
-          <el-select v-model="selectedCategory" placeholder="厂家筛选" clearable>
+          <el-select v-model="selectedCategory" placeholder="厂家筛选" clearable @change="handleSearch">
             <el-option label="全部厂家" value="" />
             <el-option v-for="m in manufacturerOptions" :key="m.manufacturerCode" :label="m.manufacturerName" :value="m.manufacturerCode" />
           </el-select>
         </el-col>
-        <el-col :xs="24" :sm="10" :md="14" style="text-align: right;">
+        <el-col :xs="24" :sm="4" :md="3">
+          <el-button type="primary" @click="handleSearch">搜索</el-button>
+          <el-button @click="handleReset">重置</el-button>
+        </el-col>
+        <el-col :xs="24" :sm="6" :md="11" style="text-align: right;">
           <el-button type="primary" @click="handleAdd">
             <el-icon><Plus /></el-icon> 添加商品
           </el-button>
@@ -23,7 +27,7 @@
 
     <!-- 商品表格 -->
     <el-card shadow="never">
-      <el-table :data="filteredProducts" stripe style="width: 100%">
+      <el-table :data="filteredProducts" stripe style="width: 100%" v-loading="loading">
         <el-table-column prop="productCode" label="编码" width="80" />
         <el-table-column label="商品信息" min-width="200">
           <template #default="{ row }">
@@ -67,6 +71,17 @@
           </template>
         </el-table-column>
       </el-table>
+
+      <!-- 分页 -->
+      <div style="display:flex; justify-content:center; margin-top:20px;" v-if="total > 0">
+        <el-pagination
+          v-model:current-page="pageNum"
+          :page-size="pageSize"
+          :total="total"
+          layout="total, prev, pager, next"
+          @current-change="fetchProducts"
+        />
+      </div>
     </el-card>
 
     <!-- 添加/编辑商品对话框 -->
@@ -110,7 +125,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Search, ShoppingBag } from '@element-plus/icons-vue'
+import { Plus, ShoppingBag, Search } from '@element-plus/icons-vue'
 import { getProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
 import { getManufacturerList } from '@/api/manufacturer'
 
@@ -161,6 +176,18 @@ onMounted(() => {
   fetchProducts()
   fetchManufacturers()
 })
+
+const handleSearch = () => {
+  pageNum.value = 1
+  fetchProducts()
+}
+
+const handleReset = () => {
+  searchKeyword.value = ''
+  selectedCategory.value = ''
+  pageNum.value = 1
+  fetchProducts()
+}
 
 const filteredProducts = computed(() => products.value)
 

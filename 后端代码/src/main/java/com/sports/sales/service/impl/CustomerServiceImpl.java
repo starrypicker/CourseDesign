@@ -8,6 +8,7 @@ import com.sports.sales.service.CustomerService;
 import com.sports.sales.util.CryptoUtil;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,10 +21,13 @@ public class CustomerServiceImpl implements CustomerService {
 
     private final CustomerMapper customerMapper;
     private final CryptoUtil cryptoUtil;
+    private final PasswordEncoder passwordEncoder;
 
-    public CustomerServiceImpl(CustomerMapper customerMapper, CryptoUtil cryptoUtil) {
+    public CustomerServiceImpl(CustomerMapper customerMapper, CryptoUtil cryptoUtil,
+                               PasswordEncoder passwordEncoder) {
         this.customerMapper = customerMapper;
         this.cryptoUtil = cryptoUtil;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -54,8 +58,13 @@ public class CustomerServiceImpl implements CustomerService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean add(Customer customer) {
-        log.info("添加顾客, customerCode={}, customerName={}", customer.getCustomerCode(), customer.getCustomerName());
+        log.info("添加顾客, customerCode={}, customerName={}",
+                customer.getCustomerCode(), customer.getCustomerName());
         encryptSensitiveData(customer);
+        // BCrypt 哈希密码
+        if (customer.getPassword() != null && !customer.getPassword().isEmpty()) {
+            customer.setPassword(passwordEncoder.encode(customer.getPassword()));
+        }
         customer.setStatus(1);
         boolean result = customerMapper.insert(customer) > 0;
         if (result) {
@@ -70,6 +79,12 @@ public class CustomerServiceImpl implements CustomerService {
     public boolean update(Customer customer) {
         log.info("更新顾客, customerCode={}", customer.getCustomerCode());
         encryptSensitiveData(customer);
+        // 如果传入了新密码，则哈希后存储；否则不修改密码
+        if (customer.getPassword() != null && !customer.getPassword().isEmpty()) {
+            customer.setPassword(passwordEncoder.encode(customer.getPassword()));
+        } else {
+            customer.setPassword(null); // 不修改密码字段
+        }
         return customerMapper.updateByCode(customer) > 0;
     }
 
@@ -81,45 +96,30 @@ public class CustomerServiceImpl implements CustomerService {
         return customerMapper.deleteByCode(customerCode) > 0;
     }
 
-    private void encryptSensitiveData(Customer customer) {
-        if (customer.getPhone() != null) {
-            customer.setPhone(cryptoUtil.encrypt(customer.getPhone()));
-        }
-        if (customer.getEmail() != null) {
-            customer.setEmail(cryptoUtil.encrypt(customer.getEmail()));
-        }
-    }
-
-    private void decryptSensitiveData(Customer customer) {
-        if (customer.getPhone() != null) {
-            customer.setPhone(tryDecrypt(customer.getPhone()));
-        }
-        if (customer.getEmail() != null) {
-            customer.setEmail(tryDecrypt(customer.getEmail()));
-        }
-    }
-
-    /**
-     * 尝试解密，如果数据是明文（未加密），则直接返回原文
-     */
-    private String tryDecrypt(String value) {
-        try {
-            return cryptoUtil.decrypt(value);
-        } catch (Exception e) {
-            // 解密失败说明是明文数据，直接返回
-            return value;
-        }
-    }
-
     @Override
     public Customer login(String customerCode, String password) {
         log.info("顾客登录, customerCode={}", customerCode);
-        Customer customer = customerMapper.selectByCodeAndPassword(customerCode, password);
-        if (customer != null) {
-            decryptSensitiveData(customer);
-            // 不返回密码
-            customer.setPassword(null);
+        Customer customer = customerMapper.selectByCode(customerCode);
+        if (customer == null) {
+            return null;
         }
+
+        // BCrypt 密码验证，兼容旧明文密码
+        boolean passwordMatch = verifyPassword(password, customer.getPassword());
+        if (!passwordMatch) {
+            log.warn("密码验证失败, customerCode={}", customerCode);
+            return null;
+        }
+
+        // 如果是旧明文密码，自动升级为BCrypt哈希
+        if (needPasswordUpgrade(customer.getPassword())) {
+            customer.setPassword(passwordEncoder.encode(password));
+            customerMapper.updateByCode(customer);
+            log.info("密码已自动升级为BCrypt哈希, customerCode={}", customerCode);
+        }
+
+        decryptSensitiveData(customer);
+        customer.setPassword(null);
         return customer;
     }
 
@@ -128,11 +128,69 @@ public class CustomerServiceImpl implements CustomerService {
     @CacheEvict(value = "customer", key = "#customerCode")
     public boolean changePassword(String customerCode, String oldPassword, String newPassword) {
         log.info("修改密码, customerCode={}", customerCode);
-        Customer customer = customerMapper.selectByCodeAndPassword(customerCode, oldPassword);
+        Customer customer = customerMapper.selectByCode(customerCode);
         if (customer == null) {
             return false;
         }
-        customer.setPassword(newPassword);
+
+        // BCrypt 验证旧密码
+        if (!verifyPassword(oldPassword, customer.getPassword())) {
+            return false;
+        }
+
+        customer.setPassword(passwordEncoder.encode(newPassword));
         return customerMapper.updateByCode(customer) > 0;
+    }
+
+    /**
+     * 验证密码（BCrypt + 明文兼容）
+     */
+    private boolean verifyPassword(String rawPassword, String storedPassword) {
+        if (storedPassword == null) {
+            return false;
+        }
+        // BCrypt 哈希以 $2a$、$2b$、$2y$ 开头
+        if (storedPassword.startsWith("$2")) {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        }
+        // 兼容旧明文密码
+        return storedPassword.equals(rawPassword);
+    }
+
+    /**
+     * 判断密码是否需要升级（旧明文密码）
+     */
+    private boolean needPasswordUpgrade(String storedPassword) {
+        return storedPassword != null && !storedPassword.startsWith("$2");
+    }
+
+    private void encryptSensitiveData(Customer customer) {
+        if (customer.getPhone() != null && !customer.getPhone().isEmpty()) {
+            customer.setPhone(cryptoUtil.encrypt(customer.getPhone()));
+        }
+        if (customer.getEmail() != null && !customer.getEmail().isEmpty()) {
+            customer.setEmail(cryptoUtil.encrypt(customer.getEmail()));
+        }
+    }
+
+    private void decryptSensitiveData(Customer customer) {
+        if (customer.getPhone() != null && !customer.getPhone().isEmpty()) {
+            customer.setPhone(tryDecrypt(customer.getPhone()));
+        }
+        if (customer.getEmail() != null && !customer.getEmail().isEmpty()) {
+            customer.setEmail(tryDecrypt(customer.getEmail()));
+        }
+    }
+
+    /**
+     * 尝试解密，如果数据是明文（未加密或旧格式），则直接返回原文
+     */
+    private String tryDecrypt(String value) {
+        try {
+            return cryptoUtil.decrypt(value);
+        } catch (Exception e) {
+            // 解密失败说明是明文数据或旧格式，直接返回
+            return value;
+        }
     }
 }

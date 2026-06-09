@@ -15,6 +15,7 @@ const AdminDashboard = () => import('@/views/admin/Dashboard.vue')
 const AdminProducts = () => import('@/views/admin/Products.vue')
 const AdminOrders = () => import('@/views/admin/Orders.vue')
 const AdminUsers = () => import('@/views/admin/Users.vue')
+const AdminPurchase = () => import('@/views/admin/Purchase.vue')
 
 const routes = [
   {
@@ -91,6 +92,12 @@ const routes = [
         name: 'AdminUsers',
         component: AdminUsers,
         meta: { title: '用户管理' }
+      },
+      {
+        path: 'purchase',
+        name: 'AdminPurchase',
+        component: AdminPurchase,
+        meta: { title: '进货管理' }
       }
     ]
   },

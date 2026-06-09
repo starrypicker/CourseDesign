@@ -38,7 +38,7 @@ service.interceptors.response.use(
       if (res.code === 401) {
         // token 过期，清除登录信息并跳转登录页
         localStorage.removeItem('token')
-        localStorage.removeItem('role')
+        localStorage.removeItem('userInfo')
         window.location.href = '/login'
       }
       return Promise.reject(new Error(res.message || 'Error'))
@@ -60,7 +60,7 @@ service.interceptors.response.use(
         case 401:
           message = '登录已过期，请重新登录'
           localStorage.removeItem('token')
-          localStorage.removeItem('role')
+          localStorage.removeItem('userInfo')
           window.location.href = '/login'
           break
         case 403:

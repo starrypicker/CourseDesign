@@ -124,6 +124,24 @@
         ORDER BY o.shipping_date DESC
     </select>
 
+    <select id="selectTodayOrderCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders WHERE DATE(order_date) = CURDATE()
+    </select>
+
+    <select id="selectTodaySales" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(total_amount), 0)
+        FROM orders
+        WHERE DATE(order_date) = CURDATE() AND order_status = 2
+    </select>
+
+    <select id="selectPendingOrderCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders WHERE order_status = 0
+    </select>
+
+    <select id="selectCustomerCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM customer WHERE status = 1
+    </select>
+
     <insert id="insert" parameterType="com.sports.sales.entity.Orders" useGeneratedKeys="true" keyProperty="orderId">
         INSERT INTO orders (order_date, customer_code, shipping_requirement, can_supply,
             shipping_date, total_weight, shipping_fee, total_amount,

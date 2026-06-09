@@ -1,5 +1,9 @@
 package com.sports.sales.entity;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.PositiveOrZero;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -7,12 +11,25 @@ import java.time.LocalDateTime;
 public class Product implements Serializable {
     private static final long serialVersionUID = 1L;
 
+    @NotBlank(message = "商品编码不能为空")
     private String productCode;
+
+    @NotBlank(message = "厂家编码不能为空")
     private String manufacturerCode;
+
+    @NotBlank(message = "商品名称不能为空")
     private String productName;
+
     private String productDesc;
+
+    @NotNull(message = "单价不能为空")
+    @PositiveOrZero(message = "单价不能为负数")
     private BigDecimal unitPrice;
+
+    @NotNull(message = "库存数量不能为空")
+    @PositiveOrZero(message = "库存数量不能为负数")
     private Integer stockQuantity;
+
     private Integer minStock;
     private BigDecimal weight;
     private Integer status;

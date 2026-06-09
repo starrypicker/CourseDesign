@@ -83,4 +83,12 @@ public class OrderController {
     public Result<List<Orders>> getCompletedOrders() {
         return Result.success(orderService.getCompletedOrders());
     }
+
+    /**
+     * 获取仪表盘统计数据
+     */
+    @GetMapping("/dashboard-stats")
+    public Result<java.util.Map<String, Object>> getDashboardStats() {
+        return Result.success(orderService.getDashboardStats());
+    }
 }

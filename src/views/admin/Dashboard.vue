@@ -10,7 +10,7 @@
           </div>
           <div class="stat-info">
             <p class="stat-label">今日销售额</p>
-            <h3 class="stat-value">¥ {{ stats.todaySales.toLocaleString() }}</h3>
+            <h3 class="stat-value">¥ {{ formatNumber(stats.todaySales) }}</h3>
           </div>
         </el-card>
       </el-col>
@@ -43,7 +43,7 @@
           </div>
           <div class="stat-info">
             <p class="stat-label">注册用户</p>
-            <h3 class="stat-value">{{ stats.totalUsers }}</h3>
+            <h3 class="stat-value">{{ stats.totalCustomers }}</h3>
           </div>
         </el-card>
       </el-col>
@@ -68,7 +68,7 @@
             </el-table-column>
             <el-table-column prop="totalAmount" label="金额" width="100">
               <template #default="{ row }">
-                <span style="color: #f56c6c; font-weight: 500;">¥ {{ Number(row.totalAmount).toFixed(2) }}</span>
+                <span style="color: #f56c6c; font-weight: 500;">¥ {{ formatNumber(row.totalAmount) }}</span>
               </template>
             </el-table-column>
             <el-table-column label="状态" width="90">
@@ -81,12 +81,30 @@
         </el-card>
       </el-col>
 
-      <!-- 热销商品 -->
+      <!-- 库存预警 & 热销商品 -->
       <el-col :xs="24" :md="10">
-        <el-card shadow="never" class="recent-card">
+        <el-card shadow="never" class="recent-card" v-if="lowStockProducts.length > 0">
           <template #header>
             <div class="card-header">
-              <span>热销商品</span>
+              <span style="color: #f56c6c;">⚠ 库存预警</span>
+              <el-button text type="danger" @click="$router.push('/admin/products')">去补货</el-button>
+            </div>
+          </template>
+          <div class="hot-products">
+            <div v-for="item in lowStockProducts" :key="item.productCode" class="hot-item">
+              <span class="hot-rank" style="background: #f56c6c; color: #fff;">!</span>
+              <span class="hot-name">{{ item.productName }}</span>
+              <span class="hot-sales" style="color: #f56c6c;">
+                库存 {{ item.stockQuantity }}/{{ item.minStock }}
+              </span>
+            </div>
+          </div>
+        </el-card>
+
+        <el-card shadow="never" class="recent-card" style="margin-top: 20px;">
+          <template #header>
+            <div class="card-header">
+              <span>商品列表</span>
               <el-button text type="primary" @click="$router.push('/admin/products')">查看全部</el-button>
             </div>
           </template>
@@ -95,9 +113,38 @@
               <span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span>
               <span class="hot-name">{{ item.productName }}</span>
               <span class="hot-sales">库存 {{ item.stockQuantity }}</span>
-              <span class="hot-amount">¥ {{ Number(item.unitPrice).toFixed(2) }}</span>
+              <span class="hot-amount">¥ {{ formatNumber(item.unitPrice) }}</span>
             </div>
           </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
+    <!-- 待处理任务 -->
+    <el-row :gutter="20" style="margin-top: 20px;">
+      <el-col :span="24">
+        <el-card shadow="never">
+          <template #header>
+            <div class="card-header">
+              <span>待处理事项</span>
+            </div>
+          </template>
+          <el-row :gutter="20">
+            <el-col :span="8">
+              <el-statistic title="待确认订单" :value="stats.pendingOrders">
+                <template #suffix>
+                  <el-button text type="primary" size="small" @click="$router.push('/admin/orders')">处理</el-button>
+                </template>
+              </el-statistic>
+            </el-col>
+            <el-col :span="8">
+              <el-statistic title="库存预警商品" :value="stats.lowStockCount">
+                <template #suffix>
+                  <el-button text type="danger" size="small" @click="$router.push('/admin/products')">处理</el-button>
+                </template>
+              </el-statistic>
+            </el-col>
+          </el-row>
         </el-card>
       </el-col>
     </el-row>
@@ -107,60 +154,81 @@
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
 import { Goods, List, ShoppingBag, User } from '@element-plus/icons-vue'
-import { getProductList } from '@/api/product'
+import { getProductList, getLowStockProducts } from '@/api/product'
 import { getOrderList } from '@/api/order'
-import { getCustomerList } from '@/api/customer'
+import { getDashboardStats } from '@/api/order'
 
 const stats = reactive({
   todaySales: 0,
   todayOrders: 0,
+  pendingOrders: 0,
+  lowStockCount: 0,
   totalProducts: 0,
-  totalUsers: 0
+  totalCustomers: 0
 })
 
 const recentOrders = ref([])
 const hotProducts = ref([])
+const lowStockProducts = ref([])
 
-// 加载统计数据
+// 格式化数字显示
+const formatNumber = (val) => {
+  if (val === null || val === undefined) return '0.00'
+  return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+}
+
+// 加载仪表盘统计数据
 const fetchStats = async () => {
   try {
-    // 商品总数
-    const productRes = await getProductList({ pageNum: 1, pageSize: 1 })
-    stats.totalProducts = productRes.total || 0
-
-    // 顾客总数
-    const customerRes = await getCustomerList({ pageNum: 1, pageSize: 1 })
-    stats.totalUsers = customerRes.total || 0
-
-    // 订单总数 + 计算销售额
-    const orderRes = await getOrderList({ pageNum: 1, pageSize: 100 })
-    stats.todayOrders = orderRes.total || 0
-    // 计算已完成订单的销售额
-    const allOrders = orderRes.rows || []
-    stats.todaySales = allOrders
-      .filter(o => o.orderStatus === 2)
-      .reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)
-
-    // 最近5条订单
-    recentOrders.value = allOrders.slice(0, 5)
+    const res = await getDashboardStats()
+    if (res) {
+      stats.todaySales = res.todaySales || 0
+      stats.todayOrders = res.todayOrders || 0
+      stats.pendingOrders = res.pendingOrders || 0
+      stats.lowStockCount = res.lowStockCount || 0
+      stats.totalProducts = res.totalProducts || 0
+      stats.totalCustomers = res.totalCustomers || 0
+    }
   } catch (e) {
-    console.error('获取统计数据失败:', e)
+    console.error('获取仪表盘数据失败:', e)
   }
 }
 
-// 加载热销商品（用商品列表前6个代替）
-const fetchHotProducts = async () => {
+// 加载最近订单
+const fetchRecentOrders = async () => {
+  try {
+    const res = await getOrderList({ pageNum: 1, pageSize: 5 })
+    recentOrders.value = res.rows || []
+  } catch (e) {
+    console.error('获取最近订单失败:', e)
+  }
+}
+
+// 加载商品列表
+const fetchProducts = async () => {
   try {
     const res = await getProductList({ pageNum: 1, pageSize: 6, status: 1 })
     hotProducts.value = res.rows || []
   } catch (e) {
-    console.error('获取热销商品失败:', e)
+    console.error('获取商品列表失败:', e)
+  }
+}
+
+// 加载库存预警
+const fetchLowStock = async () => {
+  try {
+    const res = await getLowStockProducts()
+    lowStockProducts.value = res || []
+  } catch (e) {
+    console.error('获取库存预警失败:', e)
   }
 }
 
 onMounted(() => {
   fetchStats()
-  fetchHotProducts()
+  fetchRecentOrders()
+  fetchProducts()
+  fetchLowStock()
 })
 
 const statusText = (orderStatus) => {

@@ -12,8 +12,10 @@ public class CorsConfig {
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
+        // 使用 originPattern 匹配允许所有来源（开发环境友好）
         config.addAllowedOriginPattern("*");
-        config.setAllowCredentials(true);
+        // allowCredentials 与 originPattern "*" 不能同时为 true，此处使用 token 认证故设为 false
+        config.setAllowCredentials(false);
         config.addAllowedMethod("*");
         config.addAllowedHeader("*");
         config.addExposedHeader("*");
