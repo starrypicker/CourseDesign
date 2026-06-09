@@ -27,3 +27,5 @@
 2026-06-09 14:40:54.494 [http-nio-8080-exec-5] INFO  c.s.s.service.impl.OrderServiceImpl - 订单付款, orderId=2, paymentMethod=online
 2026-06-09 14:41:13.866 [http-nio-8080-exec-1] INFO  c.s.s.service.impl.OrderServiceImpl - 发货操作, orderId=2
 2026-06-09 14:41:28.954 [http-nio-8080-exec-6] INFO  c.s.s.service.impl.OrderServiceImpl - 完成订单, orderId=2
+2026-06-09 15:04:13.394 [http-nio-8080-exec-7] INFO  c.s.s.service.impl.OrderServiceImpl - 开始创建订单, customerCode=C004, 商品数=1
+2026-06-09 15:04:13.430 [http-nio-8080-exec-7] INFO  c.s.s.service.impl.OrderServiceImpl - 订单创建成功, orderId=3, canSupply=true, totalAmount=189.00

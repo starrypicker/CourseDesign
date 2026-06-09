@@ -11611,3 +11611,24 @@ java.lang.IllegalArgumentException: Cache 'customer' does not allow 'null' value
 2026-06-09 14:41:23.514 [http-nio-8080-exec-8] INFO  c.s.sales.controller.AuthController - 用户登录成功, username=C004, role=customer
 2026-06-09 14:41:28.954 [http-nio-8080-exec-6] INFO  c.s.sales.controller.OrderController - 收到完成订单请求, orderId=2
 2026-06-09 14:41:28.954 [http-nio-8080-exec-6] INFO  c.s.s.service.impl.OrderServiceImpl - 完成订单, orderId=2
+2026-06-09 15:03:21.036 [background-preinit] INFO  o.h.validator.internal.util.Version - HV000001: Hibernate Validator 8.0.1.Final
+2026-06-09 15:03:21.070 [main] INFO  c.s.sales.SportsSalesApplication - Starting SportsSalesApplication using Java 17.0.19 with PID 38748 (C:\Users\37883\Desktop\数据库课设 - 副本 (2)\后端代码\target\classes started by 37883 in C:\Users\37883\Desktop\数据库课设 - 副本 (2)\后端代码)
+2026-06-09 15:03:21.070 [main] DEBUG c.s.sales.SportsSalesApplication - Running with Spring Boot v3.2.5, Spring v6.1.6
+2026-06-09 15:03:21.071 [main] INFO  c.s.sales.SportsSalesApplication - No active profile set, falling back to 1 default profile: "default"
+2026-06-09 15:03:23.064 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Initializing ProtocolHandler ["http-nio-8080"]
+2026-06-09 15:03:23.065 [main] INFO  o.a.catalina.core.StandardService - Starting service [Tomcat]
+2026-06-09 15:03:23.065 [main] INFO  o.a.catalina.core.StandardEngine - Starting Servlet engine: [Apache Tomcat/10.1.20]
+2026-06-09 15:03:23.146 [main] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring embedded WebApplicationContext
+2026-06-09 15:03:24.502 [main] INFO  c.s.sales.config.ThreadPoolConfig - 线程池初始化完成, coreSize=5, maxSize=20, queueCapacity=100
+2026-06-09 15:03:25.417 [main] INFO  o.a.coyote.http11.Http11NioProtocol - Starting ProtocolHandler ["http-nio-8080"]
+2026-06-09 15:03:25.441 [main] INFO  c.s.sales.SportsSalesApplication - Started SportsSalesApplication in 4.863 seconds (process running for 5.499)
+2026-06-09 15:03:25.502 [main] INFO  c.s.sales.config.DataInitializer - 测试用户初始化完成
+2026-06-09 15:03:25.828 [RMI TCP Connection(4)-10.3.118.173] INFO  o.a.c.c.C.[Tomcat].[localhost].[/] - Initializing Spring DispatcherServlet 'dispatcherServlet'
+2026-06-09 15:03:25.828 [RMI TCP Connection(4)-10.3.118.173] INFO  o.s.web.servlet.DispatcherServlet - Initializing Servlet 'dispatcherServlet'
+2026-06-09 15:03:25.829 [RMI TCP Connection(4)-10.3.118.173] INFO  o.s.web.servlet.DispatcherServlet - Completed initialization in 1 ms
+2026-06-09 15:03:34.984 [http-nio-8080-exec-2] INFO  c.s.sales.controller.AuthController - 用户登录成功, username=admin, role=admin
+2026-06-09 15:03:52.283 [http-nio-8080-exec-10] INFO  c.s.sales.controller.AuthController - 用户登录成功, username=admin, role=admin
+2026-06-09 15:04:06.268 [http-nio-8080-exec-6] INFO  c.s.sales.controller.AuthController - 用户登录成功, username=C004, role=customer
+2026-06-09 15:04:13.367 [http-nio-8080-exec-7] INFO  c.s.sales.controller.OrderController - 收到创建订单请求, customerCode=C004
+2026-06-09 15:04:13.394 [http-nio-8080-exec-7] INFO  c.s.s.service.impl.OrderServiceImpl - 开始创建订单, customerCode=C004, 商品数=1
+2026-06-09 15:04:13.430 [http-nio-8080-exec-7] INFO  c.s.s.service.impl.OrderServiceImpl - 订单创建成功, orderId=3, canSupply=true, totalAmount=189.00
