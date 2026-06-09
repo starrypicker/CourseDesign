@@ -42,7 +42,7 @@ public class StockMonitorTask {
     }
 
     private void autoReplenish(Product product) {
-        int minStock = product.getMinStock() != null ? product.getMinStock() : 0;
+        int minStock = product.getMinStock() != null ? product.getMinStock() : 10;
         int stockQuantity = product.getStockQuantity() != null ? product.getStockQuantity() : 0;
         int replenishQty = minStock * 3 - stockQuantity;
         if (replenishQty <= 0) {
@@ -53,6 +53,8 @@ public class StockMonitorTask {
         record.setProductCode(product.getProductCode());
         record.setManufacturerCode(product.getManufacturerCode());
         record.setQuantity(replenishQty);
+        // TODO: 目前进货单价使用销售单价(unitPrice)，实际进货价可能不同
+        // 建议在product表中增加purchase_price字段，或由人工确认补货时填写
         record.setUnitPrice(product.getUnitPrice());
         record.setTotalAmount(product.getUnitPrice() != null
                 ? product.getUnitPrice().multiply(BigDecimal.valueOf(replenishQty))

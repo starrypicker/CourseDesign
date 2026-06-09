@@ -70,7 +70,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
@@ -82,13 +82,25 @@ const passwordFormRef = ref(null)
 const userInfo = computed(() => store.getters.userInfo)
 
 const profileForm = reactive({
-  customerCode: userInfo.value?.customerCode || '',
-  customerName: userInfo.value?.customerName || '',
-  contactName: userInfo.value?.contactName || '',
-  email: userInfo.value?.email || '',
-  phone: userInfo.value?.phone || '',
-  address: userInfo.value?.address || ''
+  customerCode: '',
+  customerName: '',
+  contactName: '',
+  email: '',
+  phone: '',
+  address: ''
 })
+
+// 监听 userInfo 变化，同步到表单
+watch(userInfo, (info) => {
+  if (info) {
+    profileForm.customerCode = info.customerCode || ''
+    profileForm.customerName = info.customerName || ''
+    profileForm.contactName = info.contactName || ''
+    profileForm.email = info.email || ''
+    profileForm.phone = info.phone || ''
+    profileForm.address = info.address || ''
+  }
+}, { immediate: true })
 
 const passwordForm = reactive({
   oldPassword: '',
@@ -128,10 +140,7 @@ const handleSaveProfile = async () => {
       address: profileForm.address
     })
     // 更新 store 中的 userInfo
-    store.dispatch('login', {
-      token: localStorage.getItem('token'),
-      userInfo: { ...userInfo.value, ...profileForm }
-    })
+    store.commit('SET_USER_INFO', { ...userInfo.value, ...profileForm })
     ElMessage.success('个人信息保存成功')
   } catch (e) {
     console.error('保存失败:', e)

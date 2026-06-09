@@ -46,7 +46,7 @@
         </el-table-column>
         <el-table-column prop="unitPrice" label="价格" width="100">
           <template #default="{ row }">
-            <span style="color: #f56c6c; font-weight: 500;">¥ {{ Number(row.unitPrice).toFixed(2) }}</span>
+            <span style="color: #f56c6c; font-weight: 500;">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="stockQuantity" label="库存" width="80">
@@ -125,7 +125,7 @@
 <script setup>
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, ShoppingBag, Search } from '@element-plus/icons-vue'
+import { Plus, ShoppingBag } from '@element-plus/icons-vue'
 import { getProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
 import { getManufacturerList } from '@/api/manufacturer'
 
@@ -271,7 +271,17 @@ const handleSubmit = async () => {
 const handleToggleStatus = async (row) => {
   const newStatus = row.status === 1 ? 0 : 1
   try {
-    await updateProduct({ ...row, status: newStatus })
+    await updateProduct({
+      productCode: row.productCode,
+      productName: row.productName,
+      manufacturerCode: row.manufacturerCode,
+      unitPrice: row.unitPrice,
+      stockQuantity: row.stockQuantity,
+      minStock: row.minStock,
+      weight: row.weight,
+      productDesc: row.productDesc,
+      status: newStatus
+    })
     ElMessage.success(`商品已${newStatus === 1 ? '上架' : '下架'}`)
     fetchProducts()
   } catch (e) {

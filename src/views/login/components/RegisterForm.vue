@@ -10,14 +10,14 @@
     <el-form-item prop="username">
       <el-input
         v-model="form.username"
-        prefix-icon="User"
+        :prefix-icon="User"
         placeholder="请输入用户名（顾客编码）"
       />
     </el-form-item>
     <el-form-item prop="customerName">
       <el-input
         v-model="form.customerName"
-        prefix-icon="UserFilled"
+        :prefix-icon="UserFilled"
         placeholder="请输入顾客名称"
       />
     </el-form-item>
@@ -25,7 +25,7 @@
       <el-input
         v-model="form.password"
         type="password"
-        prefix-icon="Lock"
+        :prefix-icon="Lock"
         placeholder="请输入密码"
         show-password
       />
@@ -34,7 +34,7 @@
       <el-input
         v-model="form.confirmPassword"
         type="password"
-        prefix-icon="Lock"
+        :prefix-icon="Lock"
         placeholder="请再次输入密码"
         show-password
       />
@@ -55,6 +55,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
+import { User, UserFilled, Lock } from '@element-plus/icons-vue'
 import { register } from '@/api/auth'
 
 const formRef = ref(null)

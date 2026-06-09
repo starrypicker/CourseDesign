@@ -5,7 +5,7 @@ import com.sports.sales.mapper.SysUserMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.CommandLineRunner;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -14,9 +14,9 @@ public class DataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     private final SysUserMapper sysUserMapper;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    public DataInitializer(SysUserMapper sysUserMapper, BCryptPasswordEncoder passwordEncoder) {
+    public DataInitializer(SysUserMapper sysUserMapper, PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
         this.passwordEncoder = passwordEncoder;
     }

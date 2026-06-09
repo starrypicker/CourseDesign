@@ -32,6 +32,7 @@ public class OrderTimeoutTask {
 
         LocalDateTime now = LocalDateTime.now();
         for (Orders order : pendingOrders) {
+            if (order.getOrderDate() == null) continue;
             long hours = ChronoUnit.HOURS.between(order.getOrderDate(), now);
             if (hours >= 24) {
                 try {

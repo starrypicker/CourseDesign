@@ -155,8 +155,7 @@
 import { reactive, ref, onMounted } from 'vue'
 import { Goods, List, ShoppingBag, User } from '@element-plus/icons-vue'
 import { getProductList, getLowStockProducts } from '@/api/product'
-import { getOrderList } from '@/api/order'
-import { getDashboardStats } from '@/api/order'
+import { getOrderList, getDashboardStats } from '@/api/order'
 
 const stats = reactive({
   todaySales: 0,

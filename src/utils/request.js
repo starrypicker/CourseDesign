@@ -1,6 +1,7 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 import { API_BASE_URL, REQUEST_TIMEOUT } from './constants'
+import router from '@/router'
 
 // 创建 Axios 实例
 const service = axios.create({
@@ -39,7 +40,7 @@ service.interceptors.response.use(
         // token 过期，清除登录信息并跳转登录页
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
-        window.location.href = '/login'
+        router.push('/login')
       }
       return Promise.reject(new Error(res.message || 'Error'))
     } else {
@@ -61,7 +62,7 @@ service.interceptors.response.use(
           message = '登录已过期，请重新登录'
           localStorage.removeItem('token')
           localStorage.removeItem('userInfo')
-          window.location.href = '/login'
+          router.push('/login')
           break
         case 403:
           message = '没有权限访问'

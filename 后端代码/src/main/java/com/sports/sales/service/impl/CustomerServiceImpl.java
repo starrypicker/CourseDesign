@@ -32,9 +32,6 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public PageResult<Customer> list(CustomerQueryDTO query) {
-        if (query.getPhone() != null && !query.getPhone().isEmpty()) {
-            query.setPhone(cryptoUtil.encrypt(query.getPhone()));
-        }
         Long total = customerMapper.selectCount(query);
         List<Customer> rows = customerMapper.selectList(query);
         rows.forEach(c -> {
@@ -138,8 +135,8 @@ public class CustomerServiceImpl implements CustomerService {
             return false;
         }
 
-        customer.setPassword(passwordEncoder.encode(newPassword));
-        return customerMapper.updateByCode(customer) > 0;
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        return customerMapper.updatePasswordByCode(customerCode, encodedPassword) > 0;
     }
 
     /**

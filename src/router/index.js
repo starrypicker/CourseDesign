@@ -132,7 +132,7 @@ router.beforeEach((to, from, next) => {
     if (!token) {
       // 未登录，跳转到登录页，并携带 redirect 参数以便登录后回跳
       next({ name: 'Login', query: { redirect: to.fullPath } })
-    } else if (to.meta.role === 'admin' && !isAdmin) {
+    } else if (to.matched.some(record => record.meta.role === 'admin') && !isAdmin) {
       // 已登录但不是管理员，尝试访问后台
       next({ name: 'FrontHome' })
     } else {

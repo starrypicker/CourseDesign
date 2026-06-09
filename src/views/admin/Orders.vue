@@ -60,7 +60,7 @@
         </el-table-column>
         <el-table-column label="发货" width="80">
           <template #default="{ row }">
-            <el-tag :type="row.shippingStatus === 1 ? '' : row.shippingStatus === 2 ? 'success' : 'info'" size="small">
+            <el-tag :type="row.shippingStatus === 1 ? 'primary' : row.shippingStatus === 2 ? 'success' : 'info'" size="small">
               {{ row.shippingStatus === 1 ? '已发' : row.shippingStatus === 2 ? '签收' : '未发' }}
             </el-tag>
           </template>
@@ -109,7 +109,7 @@
             </el-tag>
           </el-descriptions-item>
           <el-descriptions-item label="发货状态">
-            <el-tag :type="currentOrder.shippingStatus === 1 ? '' : currentOrder.shippingStatus === 2 ? 'success' : 'info'" size="small">
+            <el-tag :type="currentOrder.shippingStatus === 1 ? 'primary' : currentOrder.shippingStatus === 2 ? 'success' : 'info'" size="small">
               {{ currentOrder.shippingStatus === 1 ? '已发货' : currentOrder.shippingStatus === 2 ? '已签收' : '未发货' }}
             </el-tag>
           </el-descriptions-item>

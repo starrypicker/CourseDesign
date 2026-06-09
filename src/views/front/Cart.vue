@@ -25,7 +25,7 @@
         </el-table-column>
         <el-table-column label="单价" width="120" align="center">
           <template #default="{ row }">
-            <span class="price">¥ {{ Number(row.unitPrice).toFixed(2) }}</span>
+            <span class="price">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="数量" width="180" align="center">
@@ -41,7 +41,7 @@
         </el-table-column>
         <el-table-column label="小计" width="120" align="center">
           <template #default="{ row }">
-            <span class="price">¥ {{ (row.unitPrice * row.quantity).toFixed(2) }}</span>
+            <span class="price">¥ {{ (Number(row.unitPrice || 0) * row.quantity).toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="100" align="center">
@@ -119,6 +119,19 @@ const handleCheckout = async () => {
   }
   if (cart.value.length === 0) {
     ElMessage.warning('购物车是空的')
+    return
+  }
+
+  // 验证收货信息是否完整
+  if (!userInfo.address || !userInfo.phone) {
+    try {
+      await ElMessageBox.confirm(
+        '您的收货地址或联系电话未完善，请先前往个人中心填写',
+        '收货信息不完整',
+        { confirmButtonText: '前往个人中心', cancelButtonText: '取消', type: 'warning' }
+      )
+      router.push('/profile')
+    } catch { /* 用户取消 */ }
     return
   }
 

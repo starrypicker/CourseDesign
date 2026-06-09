@@ -21,7 +21,7 @@
           </div>
           <div class="product-info">
             <h3>{{ item.productName }}</h3>
-            <p class="price">¥ {{ Number(item.unitPrice).toFixed(2) }}</p>
+            <p class="price">¥ {{ Number(item.unitPrice || 0).toFixed(2) }}</p>
             <el-button type="warning" plain size="small" @click="handleAddToCart(item)">
               加入购物车
             </el-button>

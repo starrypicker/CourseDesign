@@ -27,9 +27,6 @@ public class CryptoUtil {
     @Value("${crypto.secret-key}")
     private String secretKey;
 
-    @Value("${crypto.iv-key}")
-    private String ivKey;
-
     private final SecureRandom secureRandom = new SecureRandom();
 
     public String encrypt(String plainText) {
@@ -37,6 +34,9 @@ public class CryptoUtil {
             return plainText;
         }
         try {
+            if (secretKey.length() < 32) {
+                throw new RuntimeException("加密密钥长度不足32字节，当前长度: " + secretKey.length());
+            }
             SecretKeySpec keySpec = new SecretKeySpec(
                     secretKey.substring(0, 32).getBytes(StandardCharsets.UTF_8), ALGORITHM);
 
@@ -66,6 +66,9 @@ public class CryptoUtil {
             return cipherText;
         }
         try {
+            if (secretKey.length() < 32) {
+                throw new RuntimeException("加密密钥长度不足32字节，当前长度: " + secretKey.length());
+            }
             SecretKeySpec keySpec = new SecretKeySpec(
                     secretKey.substring(0, 32).getBytes(StandardCharsets.UTF_8), ALGORITHM);
 

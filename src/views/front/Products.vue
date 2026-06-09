@@ -41,7 +41,7 @@
             <el-tag size="small" type="info">{{ item.manufacturerName || '未知厂家' }}</el-tag>
             <p class="product-desc">{{ item.productDesc }}</p>
             <div class="product-bottom">
-              <span class="price">¥ {{ Number(item.unitPrice).toFixed(2) }}</span>
+              <span class="price">¥ {{ Number(item.unitPrice || 0).toFixed(2) }}</span>
               <el-button type="warning" plain size="small" @click="handleAddToCart(item)" :disabled="item.stockQuantity <= 0">
                 <el-icon><ShoppingCart /></el-icon>
                 {{ item.stockQuantity <= 0 ? '已售罄' : '加入购物车' }}

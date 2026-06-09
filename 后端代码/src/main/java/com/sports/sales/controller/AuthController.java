@@ -3,10 +3,10 @@ package com.sports.sales.controller;
 import com.sports.sales.common.Result;
 import com.sports.sales.entity.Customer;
 import com.sports.sales.entity.SysUser;
-import com.sports.sales.mapper.CustomerMapper;
 import com.sports.sales.mapper.SysUserMapper;
+import com.sports.sales.service.CustomerService;
 import com.sports.sales.util.JwtUtil;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -19,14 +19,14 @@ public class AuthController {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
 
     private final SysUserMapper sysUserMapper;
-    private final CustomerMapper customerMapper;
+    private final CustomerService customerService;
     private final JwtUtil jwtUtil;
-    private final BCryptPasswordEncoder passwordEncoder;
+    private final PasswordEncoder passwordEncoder;
 
-    public AuthController(SysUserMapper sysUserMapper, CustomerMapper customerMapper,
-                          JwtUtil jwtUtil, BCryptPasswordEncoder passwordEncoder) {
+    public AuthController(SysUserMapper sysUserMapper, CustomerService customerService,
+                          JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
         this.sysUserMapper = sysUserMapper;
-        this.customerMapper = customerMapper;
+        this.customerService = customerService;
         this.jwtUtil = jwtUtil;
         this.passwordEncoder = passwordEncoder;
     }
@@ -66,14 +66,15 @@ public class AuthController {
         userInfo.put("role", user.getRole());
         userInfo.put("customerCode", user.getCustomerCode());
 
-        // 如果是顾客，关联顾客详细信息
+        // 如果是顾客，关联顾客详细信息（通过Service层获取，自动解密敏感数据）
         if ("customer".equals(user.getRole()) && user.getCustomerCode() != null) {
-            Customer customer = customerMapper.selectByCode(user.getCustomerCode());
+            Customer customer = customerService.getByCode(user.getCustomerCode());
             if (customer != null) {
                 userInfo.put("customerName", customer.getCustomerName());
                 userInfo.put("contactName", customer.getContactName());
                 userInfo.put("address", customer.getAddress());
                 userInfo.put("phone", customer.getPhone());
+                userInfo.put("email", customer.getEmail());
             }
         }
 
@@ -89,6 +90,7 @@ public class AuthController {
     public Result<Void> register(@RequestBody Map<String, String> registerData) {
         String username = registerData.get("username");
         String password = registerData.get("password");
+        String customerName = registerData.get("customerName");
 
         if (username == null || username.trim().isEmpty()) {
             return Result.error(400, "用户名不能为空");
@@ -101,14 +103,24 @@ public class AuthController {
             return Result.error(400, "用户名已存在");
         }
 
+        // 创建顾客记录
+        Customer customer = new Customer();
+        customer.setCustomerCode(username);
+        customer.setCustomerName(customerName != null ? customerName : username);
+        customer.setPassword(passwordEncoder.encode(password));
+        customer.setStatus(1);
+        customerService.add(customer);
+
+        // 创建系统用户记录
         SysUser user = new SysUser();
         user.setUsername(username);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole("customer");
+        user.setCustomerCode(username);
         user.setStatus(1);
 
         sysUserMapper.insert(user);
         log.info("用户注册成功, username={}", username);
-        return Result.success("注册成功");
+        return Result.success();
     }
 }

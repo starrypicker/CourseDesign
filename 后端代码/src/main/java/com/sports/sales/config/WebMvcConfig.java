@@ -19,7 +19,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 // 放行登录注册接口
                 .excludePathPatterns("/api/auth/**")
                 // 放行商品浏览（前台展示不需要登录）
-                .excludePathPatterns("/api/product/list")
+                .excludePathPatterns("/api/product/list", "/api/product/low-stock")
                 // 放行厂家查询
                 .excludePathPatterns("/api/manufacturer/list")
                 // 拦截其他所有 /api/** 请求

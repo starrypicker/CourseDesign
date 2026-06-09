@@ -4,9 +4,9 @@ export default createStore({
   state: {
     // 用户信息
     token: localStorage.getItem('token') || '',
-    userInfo: JSON.parse(localStorage.getItem('userInfo') || 'null'),
+    userInfo: (() => { try { return JSON.parse(localStorage.getItem('userInfo') || 'null') } catch { return null } })(),
     // 购物车
-    cart: JSON.parse(localStorage.getItem('cart') || '[]')
+    cart: (() => { try { return JSON.parse(localStorage.getItem('cart') || '[]') } catch { return [] } })()
   },
   mutations: {
     SET_TOKEN(state, token) {

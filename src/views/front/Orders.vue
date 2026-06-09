@@ -37,17 +37,17 @@
                 <span class="item-name">{{ item.productName || item.productCode }}</span>
                 <span class="item-qty">x{{ item.quantity }}</span>
               </div>
-              <span class="item-price">¥ {{ Number(item.totalAmount).toFixed(2) }}</span>
+              <span class="item-price">¥ {{ Number(item.totalAmount || 0).toFixed(2) }}</span>
             </div>
           </div>
           <el-divider />
           <div class="order-bottom">
             <span class="order-total">
               共 {{ (order.items || []).reduce((s, i) => s + i.quantity, 0) }} 件商品，合计：
-              <strong>¥ {{ Number(order.totalAmount).toFixed(2) }}</strong>
+              <strong>¥ {{ Number(order.totalAmount || 0).toFixed(2) }}</strong>
             </span>
             <div class="order-actions">
-              <el-button v-if="order.paymentStatus === 0" type="primary" size="small" @click="handlePay(order)">
+              <el-button v-if="order.paymentStatus === 0 && order.orderStatus === 1" type="primary" size="small" @click="handlePay(order)">
                 去付款
               </el-button>
               <el-button v-if="order.shippingStatus === 1" type="success" size="small" @click="handleConfirm(order)">
@@ -86,14 +86,14 @@
           <el-table-column prop="productName" label="商品名称" />
           <el-table-column prop="quantity" label="数量" width="80" />
           <el-table-column prop="unitPrice" label="单价" width="100">
-            <template #default="{ row }">¥ {{ Number(row.unitPrice).toFixed(2) }}</template>
+            <template #default="{ row }">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</template>
           </el-table-column>
           <el-table-column prop="totalAmount" label="小计" width="100">
-            <template #default="{ row }">¥ {{ Number(row.totalAmount).toFixed(2) }}</template>
+            <template #default="{ row }">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</template>
           </el-table-column>
         </el-table>
         <div style="text-align: right; margin-top: 12px; font-size: 16px">
-          合计：<strong style="color: #f56c6c">¥ {{ Number(detailOrder.totalAmount).toFixed(2) }}</strong>
+          合计：<strong style="color: #f56c6c">¥ {{ Number(detailOrder.totalAmount || 0).toFixed(2) }}</strong>
         </div>
       </template>
     </el-dialog>
@@ -114,6 +114,8 @@ const total = ref(0)
 const loading = ref(false)
 const pageNum = ref(1)
 const pageSize = ref(10)
+const detailVisible = ref(false)
+const detailOrder = ref(null)
 
 // 加载订单数据
 const fetchOrders = async () => {
@@ -215,9 +217,6 @@ const handleViewDetail = async (order) => {
     console.error('获取订单详情失败:', e)
   }
 }
-
-const detailVisible = ref(false)
-const detailOrder = ref(null)
 </script>
 
 <style scoped>

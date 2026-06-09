@@ -50,10 +50,19 @@ public class CustomerController {
     }
 
     @PutMapping("/change-password")
-    public Result<Void> changePassword(@RequestBody Map<String, String> passwordData) {
-        String customerCode = passwordData.get("customerCode");
+    public Result<Void> changePassword(@RequestBody Map<String, String> passwordData,
+                                       jakarta.servlet.http.HttpServletRequest request) {
+        // 从JWT Token中获取当前用户的customerCode，防止越权
+        String customerCode = (String) request.getAttribute("customerCode");
+        if (customerCode == null) {
+            // 如果token中没有customerCode（如管理员），则使用请求体中的值
+            customerCode = passwordData.get("customerCode");
+        }
         String oldPassword = passwordData.get("oldPassword");
         String newPassword = passwordData.get("newPassword");
+        if (customerCode == null || oldPassword == null || newPassword == null) {
+            return Result.error(400, "参数不完整");
+        }
         log.info("收到修改密码请求, customerCode={}", customerCode);
         return customerService.changePassword(customerCode, oldPassword, newPassword) ? Result.success() : Result.error("原密码错误");
     }

@@ -150,7 +150,7 @@ const fetchUsers = async () => {
       params.customerName = searchKeyword.value
     }
     if (selectedStatus.value !== '') {
-      // status is not directly filterable on backend currently, we'll filter client-side
+      params.status = selectedStatus.value
     }
     const res = await getCustomerList(params)
     users.value = res.rows || []
