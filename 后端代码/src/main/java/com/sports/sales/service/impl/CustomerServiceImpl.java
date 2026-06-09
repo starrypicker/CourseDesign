@@ -4,6 +4,7 @@ import com.sports.sales.common.PageResult;
 import com.sports.sales.dto.CustomerQueryDTO;
 import com.sports.sales.entity.Customer;
 import com.sports.sales.mapper.CustomerMapper;
+import com.sports.sales.mapper.SysUserMapper;
 import com.sports.sales.service.CustomerService;
 import com.sports.sales.util.CryptoUtil;
 import org.springframework.cache.annotation.CacheEvict;
@@ -22,12 +23,14 @@ public class CustomerServiceImpl implements CustomerService {
     private final CustomerMapper customerMapper;
     private final CryptoUtil cryptoUtil;
     private final PasswordEncoder passwordEncoder;
+    private final SysUserMapper sysUserMapper;
 
     public CustomerServiceImpl(CustomerMapper customerMapper, CryptoUtil cryptoUtil,
-                               PasswordEncoder passwordEncoder) {
+                               PasswordEncoder passwordEncoder, SysUserMapper sysUserMapper) {
         this.customerMapper = customerMapper;
         this.cryptoUtil = cryptoUtil;
         this.passwordEncoder = passwordEncoder;
+        this.sysUserMapper = sysUserMapper;
     }
 
     @Override
@@ -42,7 +45,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
-    @Cacheable(value = "customer", key = "#customerCode")
+    @Cacheable(value = "customer", key = "#customerCode", unless = "#result == null")
     public Customer getByCode(String customerCode) {
         Customer customer = customerMapper.selectByCode(customerCode);
         if (customer != null) {
@@ -57,10 +60,16 @@ public class CustomerServiceImpl implements CustomerService {
     public boolean add(Customer customer) {
         log.info("添加顾客, customerCode={}, customerName={}",
                 customer.getCustomerCode(), customer.getCustomerName());
+        // 检查顾客编码是否已存在
+        if (customerMapper.selectByCode(customer.getCustomerCode()) != null) {
+            throw new RuntimeException("顾客编码 " + customer.getCustomerCode() + " 已存在");
+        }
         encryptSensitiveData(customer);
-        // BCrypt 哈希密码
+        // BCrypt 哈希密码，如果未提供则使用默认密码
         if (customer.getPassword() != null && !customer.getPassword().isEmpty()) {
             customer.setPassword(passwordEncoder.encode(customer.getPassword()));
+        } else {
+            customer.setPassword(passwordEncoder.encode("123456"));
         }
         customer.setStatus(1);
         boolean result = customerMapper.insert(customer) > 0;
@@ -78,7 +87,10 @@ public class CustomerServiceImpl implements CustomerService {
         encryptSensitiveData(customer);
         // 如果传入了新密码，则哈希后存储；否则不修改密码
         if (customer.getPassword() != null && !customer.getPassword().isEmpty()) {
-            customer.setPassword(passwordEncoder.encode(customer.getPassword()));
+            String encodedPassword = passwordEncoder.encode(customer.getPassword());
+            customer.setPassword(encodedPassword);
+            // 同步更新 sys_user 表的密码，确保登录验证一致
+            sysUserMapper.updatePasswordByCustomerCode(customer.getCustomerCode(), encodedPassword);
         } else {
             customer.setPassword(null); // 不修改密码字段
         }
@@ -136,6 +148,8 @@ public class CustomerServiceImpl implements CustomerService {
         }
 
         String encodedPassword = passwordEncoder.encode(newPassword);
+        // 同步更新 sys_user 表密码
+        sysUserMapper.updatePasswordByCustomerCode(customerCode, encodedPassword);
         return customerMapper.updatePasswordByCode(customerCode, encodedPassword) > 0;
     }
 

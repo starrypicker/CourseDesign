@@ -37,7 +37,7 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-    @Cacheable(value = "product", key = "#productCode")
+    @Cacheable(value = "product", key = "#productCode", unless = "#result == null")
     public Product getByCode(String productCode) {
         return productMapper.selectByCode(productCode);
     }

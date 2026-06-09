@@ -62,7 +62,7 @@ service.interceptors.response.use(
           message = '登录已过期，请重新登录'
           localStorage.removeItem('token')
           localStorage.removeItem('userInfo')
-          router.push('/login')
+          window.location.href = '/login'
           break
         case 403:
           message = '没有权限访问'

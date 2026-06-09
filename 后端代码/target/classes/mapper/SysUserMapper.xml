@@ -27,4 +27,8 @@
         INSERT INTO sys_user (username, password, role, customer_code, status)
         VALUES (#{username}, #{password}, #{role}, #{customerCode}, #{status})
     </insert>
+
+    <update id="updatePasswordByCustomerCode">
+        UPDATE sys_user SET password = #{password} WHERE customer_code = #{customerCode}
+    </update>
 </mapper>

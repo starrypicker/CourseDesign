@@ -58,11 +58,6 @@
         FROM customer WHERE customer_code = #{customerCode}
     </select>
 
-    <select id="selectByCodeAndPassword" resultMap="BaseResultMap">
-        SELECT <include refid="Base_Column_List"/>
-        FROM customer WHERE customer_code = #{customerCode} AND password = #{password}
-    </select>
-
     <insert id="insert" parameterType="com.sports.sales.entity.Customer">
         INSERT INTO customer (customer_code, customer_name, contact_name, address, postal_code, phone, email, password, status)
         VALUES (#{customerCode}, #{customerName}, #{contactName}, #{address}, #{postalCode}, #{phone}, #{email}, #{password}, #{status})
@@ -86,4 +81,8 @@
     <delete id="deleteByCode">
         DELETE FROM customer WHERE customer_code = #{customerCode}
     </delete>
+
+    <update id="updatePasswordByCode">
+        UPDATE customer SET password = #{password} WHERE customer_code = #{customerCode}
+    </update>
 </mapper>

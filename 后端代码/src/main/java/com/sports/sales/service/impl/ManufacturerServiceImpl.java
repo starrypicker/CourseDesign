@@ -27,7 +27,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     }
 
     @Override
-    @Cacheable(value = "manufacturer", key = "#manufacturerCode")
+    @Cacheable(value = "manufacturer", key = "#manufacturerCode", unless = "#result == null")
     public Manufacturer getByCode(String manufacturerCode) {
         return manufacturerMapper.selectByCode(manufacturerCode);
     }

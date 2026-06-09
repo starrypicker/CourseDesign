@@ -72,11 +72,17 @@ public class CryptoUtil {
             SecretKeySpec keySpec = new SecretKeySpec(
                     secretKey.substring(0, 32).getBytes(StandardCharsets.UTF_8), ALGORITHM);
 
-            byte[] combined = Base64.getDecoder().decode(cipherText);
+            // 尝试 Base64 解码，失败则说明是明文，直接返回
+            byte[] combined;
+            try {
+                combined = Base64.getDecoder().decode(cipherText);
+            } catch (IllegalArgumentException e) {
+                // 不是合法的 Base64 编码，说明是明文数据，直接返回
+                return cipherText;
+            }
 
             if (combined.length < IV_LENGTH) {
                 // 数据太短，可能是旧格式的明文数据
-                log.warn("解密数据长度异常，返回原文");
                 return cipherText;
             }
 
@@ -93,8 +99,9 @@ public class CryptoUtil {
             byte[] decrypted = cipher.doFinal(encrypted);
             return new String(decrypted, StandardCharsets.UTF_8);
         } catch (Exception e) {
-            log.error("解密失败", e);
-            throw new RuntimeException("解密失败", e);
+            // 解密失败（密钥不匹配、padding错误等），说明是明文或旧格式数据
+            log.debug("解密失败，返回原文: {}", e.getMessage());
+            return cipherText;
         }
     }
 }

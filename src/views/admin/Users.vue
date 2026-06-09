@@ -150,10 +150,14 @@ const fetchUsers = async () => {
       params.customerName = searchKeyword.value
     }
     if (selectedStatus.value !== '') {
-      params.status = selectedStatus.value
+      // status is not directly filterable on backend currently, we'll filter client-side
     }
     const res = await getCustomerList(params)
-    users.value = res.rows || []
+    let rows = res.rows || []
+    if (selectedStatus.value !== '') {
+      rows = rows.filter(u => u.status === selectedStatus.value)
+    }
+    users.value = rows
     total.value = res.total || 0
   } catch (e) {
     console.error('获取顾客列表失败:', e)

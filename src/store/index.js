@@ -20,8 +20,10 @@ export default createStore({
     CLEAR_USER(state) {
       state.token = ''
       state.userInfo = null
+      state.cart = []
       localStorage.removeItem('token')
       localStorage.removeItem('userInfo')
+      localStorage.removeItem('cart')
     },
     // ========== 购物车 ==========
     ADD_TO_CART(state, item) {
@@ -48,8 +50,9 @@ export default createStore({
     }
   },
   actions: {
-    // 登录成功（名称改为 login，与 LoginForm.vue 一致）
+    // 登录成功（清除旧购物车，防止前一用户数据泄露）
     login({ commit }, { token, userInfo }) {
+      commit('CLEAR_CART')          // 先清空上一个用户的购物车
       commit('SET_TOKEN', token)
       commit('SET_USER_INFO', userInfo)
     },

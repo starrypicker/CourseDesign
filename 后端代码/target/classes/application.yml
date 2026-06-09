@@ -58,8 +58,11 @@ logging:
     org.springframework.web: info
 
 crypto:
-  secret-key: ${CRYPTO_SECRET_KEY:SportsSales2026SecretKey32Bytes!}
-  iv-key: ${CRYPTO_IV_KEY:SportsSalesIV16Byte}
+  secret-key: ${CRYPTO_SECRET_KEY:SportsSales2026SecretKey32ByteAB}  # 必须恰好32字节
+
+jwt:
+  secret: ${JWT_SECRET:SportsSalesJwtSecretKey2026ForToken!}  # JWT签名密钥，至少32字节
+  expiration: 86400000  # Token有效期(毫秒)，默认24小时
 
 thread-pool:
   core-size: 5

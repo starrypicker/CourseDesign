@@ -61,7 +61,7 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    @Cacheable(value = "order", key = "#orderId")
+    @Cacheable(value = "order", key = "#orderId", unless = "#result == null")
     public Orders getById(Long orderId) {
         Orders order = orderMapper.selectById(orderId);
         if (order != null) {
@@ -74,32 +74,14 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createOrder(OrderCreateDTO dto) {
-        // 按商品编码排序后加锁，防止死锁和超卖
-        List<String> productCodes = dto.getItems().stream()
-                .map(OrderCreateDTO.OrderItemDTO::getProductCode)
-                .distinct()
-                .sorted()
-                .collect(java.util.stream.Collectors.toList());
-
-        List<RLock> locks = new ArrayList<>();
-        for (String productCode : productCodes) {
-            locks.add(redissonClient.getLock("lock:stock:" + productCode));
-        }
-
-        // 按排序顺序获取所有锁
-        for (RLock lock : locks) {
-            try {
-                boolean locked = lock.tryLock(10, 30, TimeUnit.SECONDS);
-                if (!locked) {
-                    throw new RuntimeException("系统繁忙，请稍后重试");
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-                throw new RuntimeException("创建订单被中断", e);
-            }
-        }
-
+        String lockKey = "lock:order:create:" + dto.getCustomerCode();
+        RLock lock = redissonClient.getLock(lockKey);
         try {
+            boolean locked = lock.tryLock(10, 30, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new RuntimeException("系统繁忙，请稍后重试");
+            }
+
             log.info("开始创建订单, customerCode={}, 商品数={}", dto.getCustomerCode(), dto.getItems().size());
 
             Orders order = new Orders();
@@ -166,13 +148,12 @@ public class OrderServiceImpl implements OrderService {
 
             log.info("订单创建成功, orderId={}, canSupply={}, totalAmount={}", order.getOrderId(), canSupply, totalAmount);
             return order.getOrderId();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("创建订单被中断", e);
         } finally {
-            // 按相反顺序释放锁
-            for (int i = locks.size() - 1; i >= 0; i--) {
-                RLock lock = locks.get(i);
-                if (lock.isHeldByCurrentThread()) {
-                    lock.unlock();
-                }
+            if (lock.isHeldByCurrentThread()) {
+                lock.unlock();
             }
         }
     }

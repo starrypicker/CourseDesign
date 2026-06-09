@@ -7,6 +7,7 @@ import com.sports.sales.entity.Customer;
 import com.sports.sales.service.CustomerService;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 @RestController
@@ -21,13 +22,20 @@ public class CustomerController {
         this.customerService = customerService;
     }
 
+    /**
+     * 获取顾客列表 — 仅管理员
+     */
     @GetMapping("/list")
     public Result<PageResult<Customer>> list(CustomerQueryDTO query) {
         return Result.success(customerService.list(query));
     }
 
+    /**
+     * 获取顾客详情 — 顾客只能看自己，管理员可看任意
+     */
     @GetMapping("/{customerCode}")
-    public Result<Customer> getByCode(@PathVariable String customerCode) {
+    public Result<Customer> getByCode(@PathVariable String customerCode, HttpServletRequest request) {
+        checkCustomerAccess(request, customerCode);
         return Result.success(customerService.getByCode(customerCode));
     }
 
@@ -37,8 +45,12 @@ public class CustomerController {
         return customerService.add(customer) ? Result.success() : Result.error("添加失败");
     }
 
+    /**
+     * 更新顾客 — 顾客只能更新自己，管理员可更新任意
+     */
     @PutMapping
-    public Result<Void> update(@RequestBody Customer customer) {
+    public Result<Void> update(@RequestBody Customer customer, HttpServletRequest request) {
+        checkCustomerAccess(request, customer.getCustomerCode());
         log.info("收到更新顾客请求, customerCode={}", customer.getCustomerCode());
         return customerService.update(customer) ? Result.success() : Result.error("更新失败");
     }
@@ -51,7 +63,7 @@ public class CustomerController {
 
     @PutMapping("/change-password")
     public Result<Void> changePassword(@RequestBody Map<String, String> passwordData,
-                                       jakarta.servlet.http.HttpServletRequest request) {
+                                       HttpServletRequest request) {
         // 从JWT Token中获取当前用户的customerCode，防止越权
         String customerCode = (String) request.getAttribute("customerCode");
         if (customerCode == null) {
@@ -65,5 +77,18 @@ public class CustomerController {
         }
         log.info("收到修改密码请求, customerCode={}", customerCode);
         return customerService.changePassword(customerCode, oldPassword, newPassword) ? Result.success() : Result.error("原密码错误");
+    }
+
+    /**
+     * 校验顾客访问权限：管理员可操作所有，顾客只能操作自己
+     */
+    private void checkCustomerAccess(HttpServletRequest request, String targetCustomerCode) {
+        String role = (String) request.getAttribute("role");
+        if (!"admin".equals(role)) {
+            String tokenCustomerCode = (String) request.getAttribute("customerCode");
+            if (tokenCustomerCode == null || !tokenCustomerCode.equals(targetCustomerCode)) {
+                throw new RuntimeException("无权访问该顾客信息");
+            }
+        }
     }
 }

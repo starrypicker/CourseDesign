@@ -103,11 +103,16 @@ public class AuthController {
             return Result.error(400, "用户名已存在");
         }
 
-        // 创建顾客记录
+        // 检查顾客编码是否已被占用
+        if (customerService.getByCode(username) != null) {
+            return Result.error(400, "该顾客编码已被使用，请更换用户名");
+        }
+
+        // 创建顾客记录（传入原始密码，由 Service 层统一 BCrypt 加密）
         Customer customer = new Customer();
         customer.setCustomerCode(username);
         customer.setCustomerName(customerName != null ? customerName : username);
-        customer.setPassword(passwordEncoder.encode(password));
+        customer.setPassword(password);
         customer.setStatus(1);
         customerService.add(customer);
 
