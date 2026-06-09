@@ -1,0 +1,145 @@
+<changelist name="在进行签出之前于_2026_6_9_10_03_取消提交了更改" date="1780970637318" recycled="true" deleted="true">
+  <option name="PATH" value="$PROJECT_DIR$/.idea/shelf/在进行签出之前于_2026_6_9_10_03_取消提交了更改/shelved.patch" />
+  <option name="DESCRIPTION" value="在进行签出之前于 2026/6/9 10:03 取消提交了更改" />
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/mapper/OrderItemMapper.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/controller/AuthController.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/dto/OrderCreateDTO.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/dto/ProductQueryDTO.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/config/HttpsConfig.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/mapper/ProductMapper.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/mapper/CustomerMapper.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/keystore.p12" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/util/KeyStoreGenerator.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/common/Result.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/entity/Customer.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/controller/ProductController.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/config/RedissonConfig.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/entity/Manufacturer.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/controller/OrderController.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/mapper/OrderMapper.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/CustomerService.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/impl/ManufacturerServiceImpl.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/dto/CustomerQueryDTO.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/SportsSalesApplication.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/entity/PurchaseRecord.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/task/OrderTimeoutTask.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/controller/ManufacturerController.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/config/CorsConfig.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/OrderService.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/entity/OrderItem.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/mapper/ManufacturerMapper.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/impl/OrderServiceImpl.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/task/StockMonitorTask.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/util/CryptoUtil.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/dto/OrderCreateDTO$OrderItemDTO.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/controller/PurchaseRecordController.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/config/RedisConfig.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/exception/GlobalExceptionHandler.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/impl/PurchaseRecordServiceImpl.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/controller/CustomerController.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/ManufacturerService.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/dto/OrderQueryDTO.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/common/PageResult.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/entity/Product.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/impl/CustomerServiceImpl.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/impl/ProductServiceImpl.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/entity/Orders.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/PurchaseRecordService.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/config/ThreadPoolConfig.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/mapper/PurchaseRecordMapper.class" />
+  </binary>
+  <binary>
+    <option name="BEFORE_PATH" value="target/classes/com/sports/sales/service/ProductService.class" />
+  </binary>
+</changelist>
