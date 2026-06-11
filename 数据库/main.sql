@@ -45,8 +45,9 @@ CREATE TABLE customer (
     contact_name VARCHAR(50) DEFAULT NULL COMMENT '联系人姓名',
     address VARCHAR(200) DEFAULT NULL COMMENT '地址',
     postal_code VARCHAR(10) DEFAULT NULL COMMENT '邮编',
-    phone VARCHAR(20) DEFAULT NULL COMMENT '联系电话',
-    email VARCHAR(100) DEFAULT NULL COMMENT '电子邮箱',
+    phone VARCHAR(200) DEFAULT NULL COMMENT '联系电话',
+    email VARCHAR(200) DEFAULT NULL COMMENT '电子邮箱',
+    password VARCHAR(100) NOT NULL DEFAULT '123456' COMMENT '登录密码',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1-正常,0-禁用',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
@@ -70,7 +71,7 @@ CREATE TABLE orders (
     order_status TINYINT NOT NULL DEFAULT 0 COMMENT '订单状态:0-待确认,1-已确认,2-已完成,3-已取消',
     recipient_name VARCHAR(50) DEFAULT NULL COMMENT '收件人',
     recipient_address VARCHAR(200) DEFAULT NULL COMMENT '收件地址',
-    recipient_phone VARCHAR(20) DEFAULT NULL COMMENT '收件人电话',
+    recipient_phone VARCHAR(200) DEFAULT NULL COMMENT '收件人电话',
     payment_method VARCHAR(20) DEFAULT NULL COMMENT '支付方式',
     payment_time DATETIME DEFAULT NULL COMMENT '支付时间',
     remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
@@ -100,6 +101,23 @@ CREATE TABLE order_item (
     CONSTRAINT fk_item_order FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE CASCADE,
     CONSTRAINT fk_item_product FOREIGN KEY (product_code) REFERENCES product(product_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单细则表';
+
+-- 用户认证表
+DROP TABLE IF EXISTS sys_user;
+CREATE TABLE sys_user (
+    id BIGINT NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+    username VARCHAR(50) NOT NULL COMMENT '用户名',
+    password VARCHAR(200) NOT NULL COMMENT '密码(BCrypt加密)',
+    role VARCHAR(20) NOT NULL DEFAULT 'customer' COMMENT '角色:admin-管理员,customer-顾客',
+    customer_code VARCHAR(20) DEFAULT NULL COMMENT '关联顾客代码(顾客角色)',
+    status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1-正常,0-禁用',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    UNIQUE KEY uk_username (username),
+    KEY idx_customer_code (customer_code),
+    CONSTRAINT fk_user_customer FOREIGN KEY (customer_code) REFERENCES customer(customer_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户认证表';
 
 -- 进货记录表
 DROP TABLE IF EXISTS purchase_record;
@@ -140,3 +158,5 @@ INSERT INTO customer (customer_code, customer_name, contact_name, address, posta
 ('C001', '阳光体育用品店', '刘经理', '广州市天河区体育西路100号', '510620', '020-38889999', 'sun@sports.com'),
 ('C002', '飞跃运动商城', '陈经理', '深圳市南山区科技园路50号', '518057', '0755-26886666', 'fly@sports.com'),
 ('C003', '健身体育批发', '周经理', '成都市武侯区人民南路200号', '610041', '028-85557777', 'fit@sports.com');
+
+-- 测试用户由 DataInitializer 组件在应用启动时自动创建，密码均为 123456

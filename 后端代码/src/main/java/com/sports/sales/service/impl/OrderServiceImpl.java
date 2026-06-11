@@ -13,6 +13,8 @@ import com.sports.sales.service.OrderService;
 import com.sports.sales.util.CryptoUtil;
 import org.redisson.api.RLock;
 import org.redisson.api.RedissonClient;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -34,31 +36,32 @@ public class OrderServiceImpl implements OrderService {
     private final ProductMapper productMapper;
     private final RedissonClient redissonClient;
     private final CryptoUtil cryptoUtil;
+    private final CacheManager cacheManager;
 
     public OrderServiceImpl(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
                             ProductMapper productMapper, RedissonClient redissonClient,
-                            CryptoUtil cryptoUtil) {
+                            CryptoUtil cryptoUtil, CacheManager cacheManager) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
         this.redissonClient = redissonClient;
         this.cryptoUtil = cryptoUtil;
+        this.cacheManager = cacheManager;
     }
 
     @Override
     public PageResult<Orders> list(OrderQueryDTO query) {
-        query.setPageNum((query.getPageNum() - 1) * query.getPageSize());
         Long total = orderMapper.selectCount(query);
         List<Orders> rows = orderMapper.selectList(query);
         rows.forEach(order -> {
             order.setItems(orderItemMapper.selectByOrderId(order.getOrderId()));
             decryptOrderSensitiveData(order);
         });
-        return new PageResult<>(total, rows, query.getPageNum() / query.getPageSize() + 1, query.getPageSize());
+        return new PageResult<>(total, rows, query.getPageNum(), query.getPageSize());
     }
 
     @Override
-    @Cacheable(value = "order", key = "#orderId")
+    @Cacheable(value = "order", key = "#orderId", unless = "#result == null")
     public Orders getById(Long orderId) {
         Orders order = orderMapper.selectById(orderId);
         if (order != null) {
@@ -78,6 +81,8 @@ public class OrderServiceImpl implements OrderService {
             if (!locked) {
                 throw new RuntimeException("系统繁忙，请稍后重试");
             }
+
+            log.info("开始创建订单, customerCode={}, 商品数={}", dto.getCustomerCode(), dto.getItems().size());
 
             Orders order = new Orders();
             order.setOrderDate(LocalDateTime.now());
@@ -100,10 +105,12 @@ public class OrderServiceImpl implements OrderService {
             for (OrderCreateDTO.OrderItemDTO itemDTO : dto.getItems()) {
                 Product product = productMapper.selectByCode(itemDTO.getProductCode());
                 if (product == null) {
+                    log.warn("商品不存在: {}", itemDTO.getProductCode());
                     throw new RuntimeException("商品不存在: " + itemDTO.getProductCode());
                 }
-                if (product.getStockQuantity() < itemDTO.getQuantity()) {
+                if (product.getStockQuantity() == null || product.getStockQuantity() < itemDTO.getQuantity()) {
                     canSupply = false;
+                    log.warn("商品库存不足: productCode={}, 需要={}, 当前={}", itemDTO.getProductCode(), itemDTO.getQuantity(), product.getStockQuantity());
                 }
 
                 OrderItem item = new OrderItem();
@@ -111,18 +118,19 @@ public class OrderServiceImpl implements OrderService {
                 item.setManufacturerCode(product.getManufacturerCode());
                 item.setQuantity(itemDTO.getQuantity());
                 item.setUnitPrice(product.getUnitPrice());
-                item.setTotalAmount(product.getUnitPrice().multiply(BigDecimal.valueOf(itemDTO.getQuantity())));
+                BigDecimal unitPrice = product.getUnitPrice() != null ? product.getUnitPrice() : BigDecimal.ZERO;
+                item.setTotalAmount(unitPrice.multiply(BigDecimal.valueOf(itemDTO.getQuantity())));
                 items.add(item);
 
                 totalAmount = totalAmount.add(item.getTotalAmount());
-                totalWeight = totalWeight.add(product.getWeight().multiply(BigDecimal.valueOf(itemDTO.getQuantity())));
+                totalWeight = totalWeight.add(
+                        product.getWeight() != null ? product.getWeight().multiply(BigDecimal.valueOf(itemDTO.getQuantity())) : BigDecimal.ZERO);
             }
 
             order.setCanSupply(canSupply ? 1 : 0);
             order.setTotalAmount(totalAmount);
             order.setTotalWeight(totalWeight);
             order.setShippingFee(calculateShippingFee(totalWeight));
-            order.setShippingRequirement(dto.getShippingRequirement());
 
             orderMapper.insert(order);
 
@@ -135,9 +143,10 @@ public class OrderServiceImpl implements OrderService {
                 for (OrderCreateDTO.OrderItemDTO itemDTO : dto.getItems()) {
                     productMapper.updateStock(itemDTO.getProductCode(), -itemDTO.getQuantity());
                 }
+                evictProductCache();
             }
 
-            log.info("订单创建成功, orderId={}, canSupply={}", order.getOrderId(), canSupply);
+            log.info("订单创建成功, orderId={}, canSupply={}, totalAmount={}", order.getOrderId(), canSupply, totalAmount);
             return order.getOrderId();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -153,6 +162,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean confirmOrder(Long orderId) {
+        log.info("确认订单, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
@@ -167,9 +177,16 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean shipOrder(Long orderId) {
+        log.info("发货操作, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
+        }
+        if (order.getOrderStatus() == 3) {
+            throw new RuntimeException("订单已取消，无法发货");
+        }
+        if (order.getOrderStatus() != 1) {
+            throw new RuntimeException("订单未确认，无法发货");
         }
         if (order.getPaymentStatus() != 1) {
             throw new RuntimeException("订单未付款，无法发货");
@@ -186,6 +203,7 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean cancelOrder(Long orderId) {
+        log.info("取消订单, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
@@ -193,12 +211,18 @@ public class OrderServiceImpl implements OrderService {
         if (order.getOrderStatus() == 2) {
             throw new RuntimeException("已完成的订单不能取消");
         }
-        if (order.getCanSupply() == 1) {
+        if (order.getOrderStatus() == 3) {
+            throw new RuntimeException("订单已取消，不能重复取消");
+        }
+        if (order.getCanSupply() != null && order.getCanSupply() == 1) {
             List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
             for (OrderItem item : items) {
                 productMapper.updateStock(item.getProductCode(), item.getQuantity());
+                log.info("库存回滚, productCode={}, quantity={}", item.getProductCode(), item.getQuantity());
             }
+            evictProductCache();
         }
+        log.info("订单取消成功, orderId={}", orderId);
         return orderMapper.updateOrderStatus(orderId, 3) > 0;
     }
 
@@ -206,9 +230,16 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean payOrder(Long orderId, String paymentMethod) {
+        log.info("订单付款, orderId={}, paymentMethod={}", orderId, paymentMethod);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
+        }
+        if (order.getOrderStatus() == 3) {
+            throw new RuntimeException("订单已取消，无法付款");
+        }
+        if (order.getOrderStatus() != 1) {
+            throw new RuntimeException("订单未确认，无法付款");
         }
         if (order.getPaymentStatus() != 0) {
             throw new RuntimeException("订单付款状态不正确");
@@ -223,9 +254,13 @@ public class OrderServiceImpl implements OrderService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "order", key = "#orderId")
     public boolean completeOrder(Long orderId) {
+        log.info("完成订单, orderId={}", orderId);
         Orders order = orderMapper.selectById(orderId);
         if (order == null) {
             throw new RuntimeException("订单不存在");
+        }
+        if (order.getOrderStatus() == 3) {
+            throw new RuntimeException("订单已取消，无法完成");
         }
         if (order.getShippingStatus() != 1) {
             throw new RuntimeException("订单未发货，无法完成");
@@ -238,21 +273,30 @@ public class OrderServiceImpl implements OrderService {
     @Override
     public List<Orders> getUnpaidOrders() {
         List<Orders> orders = orderMapper.selectUnpaidOrders();
-        orders.forEach(o -> o.setItems(orderItemMapper.selectByOrderId(o.getOrderId())));
+        orders.forEach(o -> {
+            o.setItems(orderItemMapper.selectByOrderId(o.getOrderId()));
+            decryptOrderSensitiveData(o);
+        });
         return orders;
     }
 
     @Override
     public List<Orders> getUnshippedOrders() {
         List<Orders> orders = orderMapper.selectUnshippedOrders();
-        orders.forEach(o -> o.setItems(orderItemMapper.selectByOrderId(o.getOrderId())));
+        orders.forEach(o -> {
+            o.setItems(orderItemMapper.selectByOrderId(o.getOrderId()));
+            decryptOrderSensitiveData(o);
+        });
         return orders;
     }
 
     @Override
     public List<Orders> getCompletedOrders() {
         List<Orders> orders = orderMapper.selectCompletedOrders();
-        orders.forEach(o -> o.setItems(orderItemMapper.selectByOrderId(o.getOrderId())));
+        orders.forEach(o -> {
+            o.setItems(orderItemMapper.selectByOrderId(o.getOrderId()));
+            decryptOrderSensitiveData(o);
+        });
         return orders;
     }
 
@@ -266,7 +310,60 @@ public class OrderServiceImpl implements OrderService {
 
     private void decryptOrderSensitiveData(Orders order) {
         if (order.getRecipientPhone() != null) {
-            order.setRecipientPhone(cryptoUtil.decrypt(order.getRecipientPhone()));
+            order.setRecipientPhone(tryDecrypt(order.getRecipientPhone()));
+        }
+    }
+
+    /**
+     * 尝试解密，如果数据是明文（未加密），则直接返回原文
+     */
+    private String tryDecrypt(String value) {
+        try {
+            return cryptoUtil.decrypt(value);
+        } catch (Exception e) {
+            return value;
+        }
+    }
+
+    @Override
+    public java.util.Map<String, Object> getDashboardStats() {
+        java.util.Map<String, Object> stats = new java.util.LinkedHashMap<>();
+
+        // 今日订单数
+        long todayOrders = orderMapper.selectTodayOrderCount();
+        stats.put("todayOrders", todayOrders);
+
+        // 今日销售额
+        java.math.BigDecimal todaySales = orderMapper.selectTodaySales();
+        stats.put("todaySales", todaySales != null ? todaySales : java.math.BigDecimal.ZERO);
+
+        // 待处理订单（待确认 + 未发货）
+        long pendingOrders = orderMapper.selectPendingOrderCount();
+        stats.put("pendingOrders", pendingOrders);
+
+        // 低库存商品数
+        long lowStockCount = productMapper.selectLowStockCount();
+        stats.put("lowStockCount", lowStockCount);
+
+        // 总商品数
+        long totalProducts = productMapper.selectTotalCount();
+        stats.put("totalProducts", totalProducts);
+
+        // 总顾客数
+        long totalCustomers = orderMapper.selectCustomerCount();
+        stats.put("totalCustomers", totalCustomers);
+
+        return stats;
+    }
+
+    private void evictProductCache() {
+        Cache productCache = cacheManager.getCache("product");
+        Cache lowStockCache = cacheManager.getCache("lowStockProducts");
+        if (productCache != null) {
+            productCache.clear();
+        }
+        if (lowStockCache != null) {
+            lowStockCache.clear();
         }
     }
 }

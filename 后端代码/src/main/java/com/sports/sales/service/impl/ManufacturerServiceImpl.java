@@ -13,6 +13,8 @@ import java.util.List;
 @Service
 public class ManufacturerServiceImpl implements ManufacturerService {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ManufacturerServiceImpl.class);
+
     private final ManufacturerMapper manufacturerMapper;
 
     public ManufacturerServiceImpl(ManufacturerMapper manufacturerMapper) {
@@ -25,7 +27,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     }
 
     @Override
-    @Cacheable(value = "manufacturer", key = "#manufacturerCode")
+    @Cacheable(value = "manufacturer", key = "#manufacturerCode", unless = "#result == null")
     public Manufacturer getByCode(String manufacturerCode) {
         return manufacturerMapper.selectByCode(manufacturerCode);
     }
@@ -33,13 +35,19 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean add(Manufacturer manufacturer) {
-        return manufacturerMapper.insert(manufacturer) > 0;
+        log.info("添加厂家, manufacturerCode={}, manufacturerName={}", manufacturer.getManufacturerCode(), manufacturer.getManufacturerName());
+        boolean result = manufacturerMapper.insert(manufacturer) > 0;
+        if (result) {
+            log.info("厂家添加成功, manufacturerCode={}", manufacturer.getManufacturerCode());
+        }
+        return result;
     }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "manufacturer", key = "#manufacturer.manufacturerCode")
     public boolean update(Manufacturer manufacturer) {
+        log.info("更新厂家, manufacturerCode={}", manufacturer.getManufacturerCode());
         return manufacturerMapper.updateByCode(manufacturer) > 0;
     }
 
@@ -47,6 +55,7 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     @Transactional(rollbackFor = Exception.class)
     @CacheEvict(value = "manufacturer", key = "#manufacturerCode")
     public boolean delete(String manufacturerCode) {
+        log.info("删除厂家, manufacturerCode={}", manufacturerCode);
         return manufacturerMapper.deleteByCode(manufacturerCode) > 0;
     }
 }

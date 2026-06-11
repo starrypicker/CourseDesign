@@ -20,4 +20,6 @@ public interface CustomerMapper {
     int updateByCode(Customer customer);
 
     int deleteByCode(@Param("customerCode") String customerCode);
+
+    int updatePasswordByCode(@Param("customerCode") String customerCode, @Param("password") String password);
 }

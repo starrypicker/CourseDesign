@@ -1,7 +1,6 @@
 package com.sports.sales.entity;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public class Customer implements Serializable {
@@ -14,6 +13,7 @@ public class Customer implements Serializable {
     private String postalCode;
     private String phone;
     private String email;
+    private String password;
     private Integer status;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
@@ -72,6 +72,14 @@ public class Customer implements Serializable {
 
     public void setEmail(String email) {
         this.email = email;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public Integer getStatus() {

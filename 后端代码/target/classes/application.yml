@@ -1,13 +1,4 @@
 server:
-  port: 8443
-  ssl:
-    enabled: true
-    key-store: classpath:keystore.p12
-    key-store-password: ${SSL_KEYSTORE_PASSWORD:changeit}
-    key-store-type: PKCS12
-    key-alias: tomcat
-
-http:
   port: 8080
 
 spring:
@@ -15,7 +6,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://localhost:3306/sports_sales?useUnicode=true&characterEncoding=utf-8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
     username: ${DB_USERNAME:root}
-    password: ${DB_PASSWORD:root}
+    password: ${DB_PASSWORD:yinlinghang111_Y}
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 5
@@ -32,7 +23,7 @@ spring:
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+    password: ${REDIS_PASSWORD:yinlinghang111_Y}
     database: 0
     timeout: 5000ms
     lettuce:
@@ -67,8 +58,11 @@ logging:
     org.springframework.web: info
 
 crypto:
-  secret-key: ${CRYPTO_SECRET_KEY:SportsSales2026SecretKey32Bytes!}
-  iv-key: ${CRYPTO_IV_KEY:SportsSalesIV16Byte}
+  secret-key: ${CRYPTO_SECRET_KEY:SportsSales2026SecretKey32ByteAB}  # 必须恰好32字节
+
+jwt:
+  secret: ${JWT_SECRET:SportsSalesJwtSecretKey2026ForToken!}  # JWT签名密钥，至少32字节
+  expiration: 86400000  # Token有效期(毫秒)，默认24小时
 
 thread-pool:
   core-size: 5
@@ -78,4 +72,4 @@ thread-pool:
 
 redisson:
   address: redis://${REDIS_HOST:localhost}:${REDIS_PORT:6379}
-  password: ${REDIS_PASSWORD:}
+  password: ${REDIS_PASSWORD:yinlinghang111_Y}

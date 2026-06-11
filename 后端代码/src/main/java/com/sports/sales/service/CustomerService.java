@@ -15,4 +15,8 @@ public interface CustomerService {
     boolean update(Customer customer);
 
     boolean delete(String customerCode);
+
+    Customer login(String customerCode, String password);
+
+    boolean changePassword(String customerCode, String oldPassword, String newPassword);
 }

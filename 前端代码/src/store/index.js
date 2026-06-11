@@ -1,0 +1,68 @@
+import { createStore } from 'vuex'
+
+export default createStore({
+  state: {
+    token: localStorage.getItem('token') || '',
+    userInfo: (() => { try { return JSON.parse(localStorage.getItem('userInfo') || 'null') } catch { return null } })(),
+    cart: (() => { try { return JSON.parse(localStorage.getItem('cart') || '[]') } catch { return [] } })()
+  },
+  mutations: {
+    SET_TOKEN(state, token) {
+      state.token = token
+      localStorage.setItem('token', token)
+    },
+    SET_USER_INFO(state, info) {
+      state.userInfo = info
+      localStorage.setItem('userInfo', JSON.stringify(info))
+    },
+    CLEAR_USER(state) {
+      state.token = ''
+      state.userInfo = null
+      state.cart = []
+      localStorage.removeItem('token')
+      localStorage.removeItem('userInfo')
+      localStorage.removeItem('cart')
+    },
+    ADD_TO_CART(state, item) {
+      const existing = state.cart.find(i => i.productCode === item.productCode)
+      if (existing) {
+        existing.quantity += item.quantity || 1
+      } else {
+        state.cart.push({ ...item, quantity: item.quantity || 1 })
+      }
+      localStorage.setItem('cart', JSON.stringify(state.cart))
+    },
+    UPDATE_CART_QUANTITY(state, { productCode, quantity }) {
+      const item = state.cart.find(i => i.productCode === productCode)
+      if (item) item.quantity = quantity
+      localStorage.setItem('cart', JSON.stringify(state.cart))
+    },
+    REMOVE_FROM_CART(state, productCode) {
+      state.cart = state.cart.filter(i => i.productCode !== productCode)
+      localStorage.setItem('cart', JSON.stringify(state.cart))
+    },
+    CLEAR_CART(state) {
+      state.cart = []
+      localStorage.removeItem('cart')
+    }
+  },
+  actions: {
+    login({ commit }, { token, userInfo }) {
+      commit('CLEAR_CART')
+      commit('SET_TOKEN', token)
+      commit('SET_USER_INFO', userInfo)
+    },
+    logout({ commit }) { commit('CLEAR_USER') },
+    addToCart({ commit }, item) { commit('ADD_TO_CART', item) },
+    updateCartQuantity({ commit }, payload) { commit('UPDATE_CART_QUANTITY', payload) },
+    removeFromCart({ commit }, productCode) { commit('REMOVE_FROM_CART', productCode) },
+    clearCart({ commit }) { commit('CLEAR_CART') }
+  },
+  getters: {
+    isLoggedIn: state => !!state.token,
+    userInfo: state => state.userInfo,
+    cart: state => state.cart,
+    cartCount: state => state.cart.reduce((sum, i) => sum + (i.quantity || 0), 0),
+    cartTotal: state => state.cart.reduce((sum, i) => sum + Number(i.unitPrice || 0) * (i.quantity || 0), 0)
+  }
+})

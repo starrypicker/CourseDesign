@@ -1,0 +1,131 @@
+package com.sports.sales.controller;
+
+import com.sports.sales.common.Result;
+import com.sports.sales.entity.Customer;
+import com.sports.sales.entity.SysUser;
+import com.sports.sales.mapper.SysUserMapper;
+import com.sports.sales.service.CustomerService;
+import com.sports.sales.util.JwtUtil;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/auth")
+public class AuthController {
+
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AuthController.class);
+
+    private final SysUserMapper sysUserMapper;
+    private final CustomerService customerService;
+    private final JwtUtil jwtUtil;
+    private final PasswordEncoder passwordEncoder;
+
+    public AuthController(SysUserMapper sysUserMapper, CustomerService customerService,
+                          JwtUtil jwtUtil, PasswordEncoder passwordEncoder) {
+        this.sysUserMapper = sysUserMapper;
+        this.customerService = customerService;
+        this.jwtUtil = jwtUtil;
+        this.passwordEncoder = passwordEncoder;
+    }
+
+    @PostMapping("/login")
+    public Result<Map<String, Object>> login(@RequestBody Map<String, String> loginData) {
+        String username = loginData.get("username");
+        String password = loginData.get("password");
+        String role = loginData.get("role");
+
+        if (username == null || password == null) {
+            return Result.error(400, "用户名和密码不能为空");
+        }
+
+        SysUser user = sysUserMapper.selectByUsername(username);
+        if (user == null) {
+            return Result.error(401, "用户名或密码错误");
+        }
+
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            return Result.error(401, "用户名或密码错误");
+        }
+
+        // 验证角色匹配
+        if (role != null && !role.equals(user.getRole())) {
+            return Result.error(403, "角色不匹配，请选择正确的登录入口");
+        }
+
+        // 生成Token
+        String token = jwtUtil.generateToken(user.getId(), user.getUsername(),
+                user.getRole(), user.getCustomerCode());
+
+        // 构建用户信息
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("userId", user.getId());
+        userInfo.put("username", user.getUsername());
+        userInfo.put("role", user.getRole());
+        userInfo.put("customerCode", user.getCustomerCode());
+
+        // 如果是顾客，关联顾客详细信息（通过Service层获取，自动解密敏感数据）
+        if ("customer".equals(user.getRole()) && user.getCustomerCode() != null) {
+            Customer customer = customerService.getByCode(user.getCustomerCode());
+            if (customer != null) {
+                userInfo.put("customerName", customer.getCustomerName());
+                userInfo.put("contactName", customer.getContactName());
+                userInfo.put("address", customer.getAddress());
+                userInfo.put("phone", customer.getPhone());
+                userInfo.put("email", customer.getEmail());
+            }
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("token", token);
+        result.put("userInfo", userInfo);
+
+        log.info("用户登录成功, username={}, role={}", username, user.getRole());
+        return Result.success(result);
+    }
+
+    @PostMapping("/register")
+    public Result<Void> register(@RequestBody Map<String, String> registerData) {
+        String username = registerData.get("username");
+        String password = registerData.get("password");
+        String customerName = registerData.get("customerName");
+
+        if (username == null || username.trim().isEmpty()) {
+            return Result.error(400, "用户名不能为空");
+        }
+        if (password == null || password.length() < 6) {
+            return Result.error(400, "密码长度不能少于6位");
+        }
+
+        if (sysUserMapper.countByUsername(username) > 0) {
+            return Result.error(400, "用户名已存在");
+        }
+
+        // 检查顾客编码是否已被占用
+        if (customerService.getByCode(username) != null) {
+            return Result.error(400, "该顾客编码已被使用，请更换用户名");
+        }
+
+        // 创建顾客记录（传入原始密码，由 Service 层统一 BCrypt 加密）
+        Customer customer = new Customer();
+        customer.setCustomerCode(username);
+        customer.setCustomerName(customerName != null ? customerName : username);
+        customer.setPassword(password);
+        customer.setStatus(1);
+        customerService.add(customer);
+
+        // 创建系统用户记录
+        SysUser user = new SysUser();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setRole("customer");
+        user.setCustomerCode(username);
+        user.setStatus(1);
+
+        sysUserMapper.insert(user);
+        log.info("用户注册成功, username={}", username);
+        return Result.success();
+    }
+}

@@ -1,9 +1,10 @@
 package com.sports.sales.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
-import java.math.BigDecimal;
 import java.util.List;
 
 public class OrderCreateDTO implements Serializable {
@@ -27,7 +28,8 @@ public class OrderCreateDTO implements Serializable {
 
     private String remark;
 
-    @NotNull(message = "订单细则不能为空")
+    @NotEmpty(message = "订单细则不能为空")
+    @Valid
     private List<OrderItemDTO> items;
 
     public String getCustomerCode() {

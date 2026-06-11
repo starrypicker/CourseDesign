@@ -8,8 +8,13 @@ public class CustomerQueryDTO implements Serializable {
     private String customerCode;
     private String customerName;
     private String phone;
+    private Integer status;
     private Integer pageNum = 1;
     private Integer pageSize = 10;
+
+    public Integer getOffset() {
+        return (pageNum - 1) * pageSize;
+    }
 
     public String getCustomerCode() {
         return customerCode;
@@ -33,6 +38,14 @@ public class CustomerQueryDTO implements Serializable {
 
     public void setPhone(String phone) {
         this.phone = phone;
+    }
+
+    public Integer getStatus() {
+        return status;
+    }
+
+    public void setStatus(Integer status) {
+        this.status = status;
     }
 
     public Integer getPageNum() {

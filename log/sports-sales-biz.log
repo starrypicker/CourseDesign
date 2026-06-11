@@ -1,0 +1,31 @@
+2026-06-09 08:57:03.015 [http-nio-8080-exec-2] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客登录, customerCode=001
+2026-06-09 14:13:19.319 [http-nio-8080-exec-6] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A001, customerName=小明
+2026-06-09 14:13:21.672 [http-nio-8080-exec-8] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A001, customerName=小明
+2026-06-09 14:13:23.248 [http-nio-8080-exec-9] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A001, customerName=小明
+2026-06-09 14:13:23.751 [http-nio-8080-exec-2] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A001, customerName=小明
+2026-06-09 14:16:05.470 [http-nio-8080-exec-4] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A001, customerName=小明
+2026-06-09 14:16:05.633 [http-nio-8080-exec-4] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客添加成功, customerCode=A001
+2026-06-09 14:16:48.940 [http-nio-8080-exec-5] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A002, customerName=小明
+2026-06-09 14:18:33.605 [http-nio-8080-exec-2] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=A002, customerName=小明
+2026-06-09 14:18:33.705 [http-nio-8080-exec-2] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客添加成功, customerCode=A002
+2026-06-09 14:19:20.482 [http-nio-8080-exec-4] INFO  c.s.s.s.impl.CustomerServiceImpl - 更新顾客, customerCode=A002
+2026-06-09 14:19:34.384 [http-nio-8080-exec-5] INFO  c.s.s.service.impl.OrderServiceImpl - 开始创建订单, customerCode=A002, 商品数=1
+2026-06-09 14:19:34.420 [http-nio-8080-exec-5] INFO  c.s.s.service.impl.OrderServiceImpl - 订单创建成功, orderId=1, canSupply=true, totalAmount=149.00
+2026-06-09 14:20:14.067 [http-nio-8080-exec-2] INFO  c.s.s.service.impl.OrderServiceImpl - 确认订单, orderId=1
+2026-06-09 14:26:17.039 [http-nio-8080-exec-3] INFO  c.s.s.s.impl.CustomerServiceImpl - 更新顾客, customerCode=C001
+2026-06-09 14:27:42.892 [http-nio-8080-exec-8] INFO  c.s.s.s.impl.CustomerServiceImpl - 更新顾客, customerCode=C001
+2026-06-09 14:27:55.188 [http-nio-8080-exec-5] INFO  c.s.s.s.impl.CustomerServiceImpl - 更新顾客, customerCode=C002
+2026-06-09 14:28:13.198 [http-nio-8080-exec-10] INFO  c.s.s.s.impl.CustomerServiceImpl - 更新顾客, customerCode=A001
+2026-06-09 14:33:41.395 [http-nio-8080-exec-4] INFO  c.s.s.s.impl.CustomerServiceImpl - 更新顾客, customerCode=C001
+2026-06-09 14:34:25.843 [http-nio-8080-exec-7] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=C003, customerName=小王
+2026-06-09 14:38:53.220 [http-nio-8080-exec-2] INFO  c.s.s.s.impl.CustomerServiceImpl - 添加顾客, customerCode=C004, customerName=小王
+2026-06-09 14:38:53.319 [http-nio-8080-exec-2] INFO  c.s.s.s.impl.CustomerServiceImpl - 顾客添加成功, customerCode=C004
+2026-06-09 14:39:28.340 [http-nio-8080-exec-5] INFO  c.s.s.s.impl.CustomerServiceImpl - 更新顾客, customerCode=C004
+2026-06-09 14:39:39.446 [http-nio-8080-exec-5] INFO  c.s.s.service.impl.OrderServiceImpl - 开始创建订单, customerCode=C004, 商品数=2
+2026-06-09 14:39:39.485 [http-nio-8080-exec-5] INFO  c.s.s.service.impl.OrderServiceImpl - 订单创建成功, orderId=2, canSupply=true, totalAmount=338.00
+2026-06-09 14:40:21.580 [http-nio-8080-exec-4] INFO  c.s.s.service.impl.OrderServiceImpl - 确认订单, orderId=2
+2026-06-09 14:40:54.494 [http-nio-8080-exec-5] INFO  c.s.s.service.impl.OrderServiceImpl - 订单付款, orderId=2, paymentMethod=online
+2026-06-09 14:41:13.866 [http-nio-8080-exec-1] INFO  c.s.s.service.impl.OrderServiceImpl - 发货操作, orderId=2
+2026-06-09 14:41:28.954 [http-nio-8080-exec-6] INFO  c.s.s.service.impl.OrderServiceImpl - 完成订单, orderId=2
+2026-06-09 15:04:13.394 [http-nio-8080-exec-7] INFO  c.s.s.service.impl.OrderServiceImpl - 开始创建订单, customerCode=C004, 商品数=1
+2026-06-09 15:04:13.430 [http-nio-8080-exec-7] INFO  c.s.s.service.impl.OrderServiceImpl - 订单创建成功, orderId=3, canSupply=true, totalAmount=189.00

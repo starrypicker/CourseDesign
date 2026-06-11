@@ -63,7 +63,7 @@
             </if>
         </where>
         ORDER BY o.create_time DESC
-        LIMIT #{pageSize} OFFSET #{pageNum}
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
     <select id="selectCount" resultType="java.lang.Long" parameterType="com.sports.sales.dto.OrderQueryDTO">
@@ -124,6 +124,24 @@
         ORDER BY o.shipping_date DESC
     </select>
 
+    <select id="selectTodayOrderCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders WHERE DATE(order_date) = CURDATE()
+    </select>
+
+    <select id="selectTodaySales" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(total_amount), 0)
+        FROM orders
+        WHERE DATE(order_date) = CURDATE() AND order_status = 2
+    </select>
+
+    <select id="selectPendingOrderCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders WHERE order_status = 0
+    </select>
+
+    <select id="selectCustomerCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM customer WHERE status = 1
+    </select>
+
     <insert id="insert" parameterType="com.sports.sales.entity.Orders" useGeneratedKeys="true" keyProperty="orderId">
         INSERT INTO orders (order_date, customer_code, shipping_requirement, can_supply,
             shipping_date, total_weight, shipping_fee, total_amount,
@@ -151,7 +169,7 @@
             <if test="orderStatus != null">order_status = #{orderStatus},</if>
             <if test="recipientName != null">recipient_name = #{recipientName},</if>
             <if test="recipientAddress != null">recipient_address = #{recipientAddress},</if>
-            <if test="recipientPhone != null">recipient_phone = #{recipientPhone},</if>
+            <!-- recipientPhone 不通过 updateById 更新，避免解密后数据被误写回 -->
             <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
             <if test="paymentTime != null">payment_time = #{paymentTime},</if>
             <if test="remark != null">remark = #{remark},</if>
