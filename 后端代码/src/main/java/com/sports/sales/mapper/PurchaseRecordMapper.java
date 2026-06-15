@@ -18,6 +18,8 @@ public interface PurchaseRecordMapper {
 
     int countPendingByProductCode(@Param("productCode") String productCode);
 
+    int countByManufacturerCode(@Param("manufacturerCode") String manufacturerCode);
+
     Long selectCount(@Param("status") Integer status);
 
     List<PurchaseRecord> selectList(@Param("status") Integer status,

@@ -66,4 +66,9 @@
     <update id="updateStatus">
         UPDATE purchase_record SET status = #{status} WHERE id = #{id}
     </update>
+
+    <select id="countByManufacturerCode" resultType="int">
+        SELECT COUNT(*) FROM purchase_record
+        WHERE manufacturer_code = #{manufacturerCode}
+    </select>
 </mapper>

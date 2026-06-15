@@ -92,4 +92,8 @@
         WHERE order_id = #{orderId} AND status = 3
     </select>
 
+    <select id="countByCustomerCode" resultType="int">
+        SELECT COUNT(*) FROM return_request WHERE customer_code = #{customerCode}
+    </select>
+
 </mapper>

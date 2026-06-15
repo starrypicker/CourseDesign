@@ -116,4 +116,8 @@
     <select id="selectTotalCount" resultType="java.lang.Long">
         SELECT COUNT(*) FROM product
     </select>
+
+    <select id="countByManufacturerCode" resultType="int">
+        SELECT COUNT(*) FROM product WHERE manufacturer_code = #{manufacturerCode} AND status = 1
+    </select>
 </mapper>

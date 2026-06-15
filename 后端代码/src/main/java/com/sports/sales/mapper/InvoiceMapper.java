@@ -29,4 +29,7 @@ public interface InvoiceMapper {
 
     /** 作废/取消发票，状态设为2 */
     int cancelInvoice(@Param("id") Long id);
+
+    /** 按顾客代码统计发票数 */
+    int countByCustomerCode(@Param("customerCode") String customerCode);
 }

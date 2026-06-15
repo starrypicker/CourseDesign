@@ -48,4 +48,10 @@ public interface OrderMapper {
 
     /** 缺货订单列表（canSupply=0） */
     List<Orders> selectOutOfStockOrders();
+
+    /** 按顾客代码统计订单数 */
+    int countByCustomerCode(@Param("customerCode") String customerCode);
+
+    /** 顾客总数（用于仪表盘） */
+    long selectCustomerCount();
 }

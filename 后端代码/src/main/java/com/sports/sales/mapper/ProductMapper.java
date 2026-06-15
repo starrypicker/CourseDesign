@@ -35,4 +35,7 @@ public interface ProductMapper {
 
     /** 商品总数 */
     long selectTotalCount();
+
+    /** 按厂家编码统计商品数 */
+    int countByManufacturerCode(@Param("manufacturerCode") String manufacturerCode);
 }

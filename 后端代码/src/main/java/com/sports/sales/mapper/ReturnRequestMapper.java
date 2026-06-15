@@ -36,4 +36,7 @@ public interface ReturnRequestMapper {
 
     /** 检查某订单是否已有已完成的退换货申请 */
     int countCompletedByOrderId(@Param("orderId") Long orderId);
+
+    /** 按顾客代码统计退换货申请数 */
+    int countByCustomerCode(@Param("customerCode") String customerCode);
 }

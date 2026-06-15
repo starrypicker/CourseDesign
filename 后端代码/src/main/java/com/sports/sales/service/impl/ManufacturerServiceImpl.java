@@ -2,6 +2,8 @@ package com.sports.sales.service.impl;
 
 import com.sports.sales.entity.Manufacturer;
 import com.sports.sales.mapper.ManufacturerMapper;
+import com.sports.sales.mapper.ProductMapper;
+import com.sports.sales.mapper.PurchaseRecordMapper;
 import com.sports.sales.service.ManufacturerService;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -16,9 +18,15 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(ManufacturerServiceImpl.class);
 
     private final ManufacturerMapper manufacturerMapper;
+    private final ProductMapper productMapper;
+    private final PurchaseRecordMapper purchaseRecordMapper;
 
-    public ManufacturerServiceImpl(ManufacturerMapper manufacturerMapper) {
+    public ManufacturerServiceImpl(ManufacturerMapper manufacturerMapper,
+                                   ProductMapper productMapper,
+                                   PurchaseRecordMapper purchaseRecordMapper) {
         this.manufacturerMapper = manufacturerMapper;
+        this.productMapper = productMapper;
+        this.purchaseRecordMapper = purchaseRecordMapper;
     }
 
     @Override
@@ -56,6 +64,20 @@ public class ManufacturerServiceImpl implements ManufacturerService {
     @CacheEvict(value = "manufacturer", key = "#manufacturerCode")
     public boolean delete(String manufacturerCode) {
         log.info("删除厂家, manufacturerCode={}", manufacturerCode);
-        return manufacturerMapper.deleteByCode(manufacturerCode) > 0;
+        // 检查是否有关联商品
+        int productCount = productMapper.countByManufacturerCode(manufacturerCode);
+        if (productCount > 0) {
+            throw new RuntimeException("该厂家下还有 " + productCount + " 个商品，请先删除或转移商品后再删除厂家");
+        }
+        // 检查是否有关联进货记录
+        int purchaseCount = purchaseRecordMapper.countByManufacturerCode(manufacturerCode);
+        if (purchaseCount > 0) {
+            throw new RuntimeException("该厂家还有 " + purchaseCount + " 条进货记录，请先清理后再删除厂家");
+        }
+        boolean result = manufacturerMapper.deleteByCode(manufacturerCode) > 0;
+        if (result) {
+            log.info("厂家删除成功, manufacturerCode={}", manufacturerCode);
+        }
+        return result;
     }
 }

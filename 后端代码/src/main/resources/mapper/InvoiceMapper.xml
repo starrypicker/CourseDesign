@@ -78,4 +78,8 @@
         WHERE id = #{id}
     </update>
 
+    <select id="countByCustomerCode" resultType="int">
+        SELECT COUNT(*) FROM invoice WHERE customer_code = #{customerCode}
+    </select>
+
 </mapper>

@@ -206,4 +206,8 @@
     <update id="updateShippingStatus">
         UPDATE orders SET shipping_status = #{shippingStatus} WHERE order_id = #{orderId}
     </update>
+
+    <select id="countByCustomerCode" resultType="int">
+        SELECT COUNT(*) FROM orders WHERE customer_code = #{customerCode}
+    </select>
 </mapper>
