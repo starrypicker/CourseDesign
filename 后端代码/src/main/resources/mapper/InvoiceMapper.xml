@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sports.sales.mapper.InvoiceMapper">
+
+    <resultMap id="BaseResultMap" type="com.sports.sales.entity.Invoice">
+        <id column="id" property="id"/>
+        <result column="order_id" property="orderId"/>
+        <result column="customer_code" property="customerCode"/>
+        <result column="invoice_no" property="invoiceNo"/>
+        <result column="invoice_title" property="invoiceTitle"/>
+        <result column="tax_no" property="taxNo"/>
+        <result column="invoice_type" property="invoiceType"/>
+        <result column="amount" property="amount"/>
+        <result column="invoice_date" property="invoiceDate"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="customer_name" property="customerName"/>
+    </resultMap>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT i.*, c.customer_name
+        FROM invoice i
+        LEFT JOIN customer c ON i.customer_code = c.customer_code
+        WHERE 1=1
+        <if test="customerCode != null and customerCode != ''">
+            AND i.customer_code = #{customerCode}
+        </if>
+        <if test="status != null">
+            AND i.status = #{status}
+        </if>
+        ORDER BY i.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) FROM invoice
+        WHERE 1=1
+        <if test="customerCode != null and customerCode != ''">
+            AND customer_code = #{customerCode}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT i.*, c.customer_name
+        FROM invoice i
+        LEFT JOIN customer c ON i.customer_code = c.customer_code
+        WHERE i.id = #{id}
+    </select>
+
+    <select id="selectByOrderId" resultMap="BaseResultMap">
+        SELECT i.*, c.customer_name
+        FROM invoice i
+        LEFT JOIN customer c ON i.customer_code = c.customer_code
+        WHERE i.order_id = #{orderId}
+    </select>
+
+    <insert id="insert" parameterType="com.sports.sales.entity.Invoice" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO invoice (order_id, customer_code, invoice_title, tax_no, invoice_type, amount, status, remark, create_time, update_time)
+        VALUES (#{orderId}, #{customerCode}, #{invoiceTitle}, #{taxNo}, #{invoiceType}, #{amount}, 0, #{remark}, NOW(), NOW())
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE invoice SET
+            status = #{status},
+            invoice_no = #{invoiceNo},
+            invoice_date = NOW(),
+            update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <update id="cancelInvoice">
+        UPDATE invoice SET status = 2, update_time = NOW()
+        WHERE id = #{id}
+    </update>
+
+</mapper>

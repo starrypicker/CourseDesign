@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sports.sales.mapper.ReturnRequestMapper">
+
+    <resultMap id="BaseResultMap" type="com.sports.sales.entity.ReturnRequest">
+        <id column="id" property="id"/>
+        <result column="order_id" property="orderId"/>
+        <result column="customer_code" property="customerCode"/>
+        <result column="type" property="type"/>
+        <result column="reason" property="reason"/>
+        <result column="status" property="status"/>
+        <result column="admin_remark" property="adminRemark"/>
+        <result column="refund_amount" property="refundAmount"/>
+        <result column="handled_by" property="handledBy"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="customer_name" property="customerName"/>
+    </resultMap>
+
+    <sql id="BaseColumnList">
+        r.id, r.order_id, r.customer_code, r.type, r.reason, r.status,
+        r.admin_remark, r.refund_amount, r.handled_by, r.create_time, r.update_time
+    </sql>
+
+    <select id="selectList" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>, c.customer_name
+        FROM return_request r
+        LEFT JOIN customer c ON r.customer_code = c.customer_code
+        WHERE 1=1
+        <if test="customerCode != null and customerCode != ''">
+            AND r.customer_code = #{customerCode}
+        </if>
+        <if test="status != null">
+            AND r.status = #{status}
+        </if>
+        <if test="type != null">
+            AND r.type = #{type}
+        </if>
+        ORDER BY r.create_time DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="selectCount" resultType="long">
+        SELECT COUNT(*) FROM return_request
+        WHERE 1=1
+        <if test="customerCode != null and customerCode != ''">
+            AND customer_code = #{customerCode}
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="type != null">
+            AND type = #{type}
+        </if>
+    </select>
+
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT <include refid="BaseColumnList"/>, c.customer_name
+        FROM return_request r
+        LEFT JOIN customer c ON r.customer_code = c.customer_code
+        WHERE r.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.sports.sales.entity.ReturnRequest" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO return_request (order_id, customer_code, type, reason, status, refund_amount, create_time, update_time)
+        VALUES (#{orderId}, #{customerCode}, #{type}, #{reason}, 0, #{refundAmount}, NOW(), NOW())
+    </insert>
+
+    <update id="updateStatus">
+        UPDATE return_request SET
+            status = #{status},
+            admin_remark = #{adminRemark},
+            handled_by = #{handledBy},
+            update_time = NOW()
+        <if test="refundAmount != null">
+            , refund_amount = #{refundAmount}
+        </if>
+        WHERE id = #{id}
+    </update>
+
+    <update id="complete">
+        UPDATE return_request SET status = 3, update_time = NOW() WHERE id = #{id}
+    </update>
+
+    <select id="countActiveByOrderId" resultType="int">
+        SELECT COUNT(*) FROM return_request
+        WHERE order_id = #{orderId} AND status IN (0, 1)
+    </select>
+
+    <select id="countCompletedByOrderId" resultType="int">
+        SELECT COUNT(*) FROM return_request
+        WHERE order_id = #{orderId} AND status = 3
+    </select>
+
+</mapper>

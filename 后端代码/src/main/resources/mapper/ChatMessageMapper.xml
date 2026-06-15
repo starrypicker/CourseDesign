@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.sports.sales.mapper.ChatMessageMapper">
+
+    <resultMap id="BaseResultMap" type="com.sports.sales.entity.ChatMessage">
+        <id column="id" property="id"/>
+        <result column="sender_code" property="senderCode"/>
+        <result column="sender_name" property="senderName"/>
+        <result column="sender_role" property="senderRole"/>
+        <result column="receiver_code" property="receiverCode"/>
+        <result column="content" property="content"/>
+        <result column="is_read" property="isRead"/>
+        <result column="create_time" property="createTime"/>
+    </resultMap>
+
+    <insert id="insert" parameterType="com.sports.sales.entity.ChatMessage" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO chat_message (sender_code, sender_name, sender_role, receiver_code, content, is_read, create_time)
+        VALUES (#{senderCode}, #{senderName}, #{senderRole}, #{receiverCode}, #{content}, 0,
+            COALESCE(#{createTime, jdbcType=TIMESTAMP}, NOW()))
+    </insert>
+
+    <select id="selectHistory" resultMap="BaseResultMap">
+        SELECT * FROM chat_message
+        WHERE (sender_code = #{userCode1} AND receiver_code = #{userCode2})
+           OR (sender_code = #{userCode2} AND receiver_code = #{userCode1})
+        ORDER BY create_time ASC
+        LIMIT #{limit}
+    </select>
+
+    <select id="selectContacts" resultType="string">
+        SELECT DISTINCT sender_code FROM chat_message
+        WHERE sender_role = 'customer'
+        ORDER BY sender_code
+    </select>
+
+    <update id="markAsRead">
+        UPDATE chat_message SET is_read = 1
+        WHERE sender_code = #{senderCode} AND sender_role = 'customer' AND is_read = 0
+    </update>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*) FROM chat_message WHERE is_read = 0 AND sender_role = 'customer'
+    </select>
+
+</mapper>

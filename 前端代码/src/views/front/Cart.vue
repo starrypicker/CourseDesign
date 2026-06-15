@@ -13,7 +13,7 @@
         </el-table-column>
         <el-table-column label="单价" width="120" align="center"><template #default="{ row }"><span class="price">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</span></template></el-table-column>
         <el-table-column label="数量" width="180" align="center">
-          <template #default="{ row }"><el-input-number v-model="row.quantity" :min="1" :max="99" size="small" @change="(val) => handleQuantityChange(row.productCode, val)" /></template>
+          <template #default="{ row }"><el-input-number v-model="row.quantity" :min="1" :max="row.stockQuantity || 999" size="small" @change="(val) => handleQuantityChange(row.productCode, val)" /></template>
         </el-table-column>
         <el-table-column label="小计" width="120" align="center"><template #default="{ row }"><span class="price">¥ {{ (Number(row.unitPrice || 0) * row.quantity).toFixed(2) }}</span></template></el-table-column>
         <el-table-column label="操作" width="100" align="center"><template #default="{ row }"><el-button type="danger" link @click="handleRemove(row.productCode)"><el-icon><Delete /></el-icon>删除</el-button></template></el-table-column>
@@ -22,7 +22,16 @@
     </el-card>
     <el-card v-if="cart.length > 0" shadow="never" class="checkout-card">
       <div class="checkout-bar">
-        <div class="checkout-info"><span>共 <strong>{{ cartCount }}</strong> 件商品</span><span class="checkout-total">合计：<strong>¥ {{ cartTotal.toFixed(2) }}</strong></span></div>
+        <div class="checkout-info">
+          <span>共 <strong>{{ cartCount }}</strong> 件商品</span>
+          <span class="checkout-total">合计：<strong>¥ {{ cartTotal.toFixed(2) }}</strong></span>
+          <div class="payment-select">
+            <span class="payment-label">支付方式：</span>
+            <el-select v-model="paymentMethod" size="small" style="width:130px">
+              <el-option v-for="pm in PAYMENT_METHODS" :key="pm.value" :label="pm.label" :value="pm.value" />
+            </el-select>
+          </div>
+        </div>
         <el-button type="primary" size="large" @click="handleCheckout">去结算</el-button>
       </div>
     </el-card>
@@ -30,17 +39,19 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ShoppingCart, ShoppingBag, Delete } from '@element-plus/icons-vue'
+import { PAYMENT_METHODS } from '@/utils/constants'
 
 const store = useStore()
 const router = useRouter()
 const cart = computed(() => store.getters.cart)
 const cartCount = computed(() => store.getters.cartCount)
 const cartTotal = computed(() => store.getters.cartTotal)
+const paymentMethod = ref('wechat')
 
 const handleQuantityChange = (productCode, quantity) => store.dispatch('updateCartQuantity', { productCode, quantity })
 const handleRemove = (productCode) => { store.dispatch('removeFromCart', productCode); ElMessage.success('已从购物车移除') }
@@ -98,7 +109,7 @@ const handleCheckout = async () => {
     const { createOrder } = await import('@/api/order')
     const orderData = {
       customerCode: userInfo.customerCode, recipientName: userInfo.contactName || userInfo.customerName,
-      recipientAddress: userInfo.address, recipientPhone: userInfo.phone, paymentMethod: 'online',
+      recipientAddress: userInfo.address, recipientPhone: userInfo.phone, paymentMethod: paymentMethod.value,
       items: cart.value.map(item => ({ productCode: item.productCode, quantity: item.quantity }))
     }
     const orderId = await createOrder(orderData)
@@ -119,6 +130,8 @@ const handleCheckout = async () => {
 .price { color: #f56c6c; font-weight: bold; }
 .checkout-card { margin-top: 20px; }
 .checkout-bar { display: flex; align-items: center; justify-content: flex-end; gap: 30px; }
-.checkout-info { display: flex; align-items: center; gap: 20px; font-size: 14px; color: #606266; }
+.checkout-info { display: flex; align-items: center; gap: 20px; font-size: 14px; color: #606266; flex-wrap: wrap; }
+.payment-select { display: flex; align-items: center; gap: 6px; }
+.payment-label { font-size: 13px; color: #909399; }
 .checkout-total strong { color: #f56c6c; font-size: 22px; }
 </style>

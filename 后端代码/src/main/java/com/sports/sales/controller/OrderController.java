@@ -124,6 +124,36 @@ public class OrderController {
     }
 
     /**
+     * 获取订单邮寄信息（用于打印邮寄标签，管理员调用）
+     */
+    @GetMapping("/shipping-info/{orderId}")
+    public Result<java.util.Map<String, Object>> getShippingInfo(@PathVariable Long orderId, HttpServletRequest request) {
+        checkAdmin(request);
+        Orders order = orderService.getById(orderId);
+        if (order == null) {
+            return Result.error("订单不存在");
+        }
+        java.util.Map<String, Object> info = new java.util.LinkedHashMap<>();
+        info.put("orderId", order.getOrderId());
+        info.put("recipientName", order.getRecipientName());
+        info.put("recipientPhone", order.getRecipientPhone());
+        info.put("recipientAddress", order.getRecipientAddress());
+        info.put("shippingRequirement", order.getShippingRequirement());
+        info.put("totalWeight", order.getTotalWeight());
+        info.put("shippingFee", order.getShippingFee());
+        info.put("shippingDate", order.getShippingDate());
+        info.put("shippingStatus", order.getShippingStatus());
+        return Result.success(info);
+    }
+
+    private void checkAdmin(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"admin".equals(role)) {
+            throw new RuntimeException("无权限访问");
+        }
+    }
+
+    /**
      * 校验订单访问权限：管理员可查看所有，顾客只能查看自己的订单
      */
     private void checkOrderAccess(HttpServletRequest request, Orders order) {

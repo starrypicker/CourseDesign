@@ -18,8 +18,15 @@
           <div class="order-bottom">
             <span class="order-total">共 {{ (order.items || []).reduce((s, i) => s + i.quantity, 0) }} 件商品，合计：<strong>¥ {{ Number(order.totalAmount || 0).toFixed(2) }}</strong></span>
             <div class="order-actions">
-              <el-button v-if="order.paymentStatus === 0 && order.orderStatus === 1" type="primary" size="small" @click="handlePay(order)">去付款</el-button>
+              <template v-if="order.paymentStatus === 0 && order.orderStatus === 1">
+                <el-select v-model="order._payMethod" size="small" style="width:110px" placeholder="支付方式">
+                  <el-option v-for="pm in PAYMENT_METHODS" :key="pm.value" :label="pm.label" :value="pm.value" />
+                </el-select>
+                <el-button type="primary" size="small" @click="handlePay(order)">去付款</el-button>
+              </template>
               <el-button v-if="order.shippingStatus === 1" type="success" size="small" @click="handleConfirm(order)">确认收货</el-button>
+              <el-button v-if="order.orderStatus === 2 || order.shippingStatus === 2" type="warning" size="small" @click="$router.push('/returns')">申请退换货</el-button>
+              <el-button v-if="canCancel(order)" type="danger" size="small" @click="handleCancel(order)">取消订单</el-button>
               <el-button size="small" @click="handleViewDetail(order)">查看详情</el-button>
             </div>
           </div>
@@ -60,7 +67,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { List, ShoppingBag } from '@element-plus/icons-vue'
-import { getOrderList, payOrder, completeOrder, getOrderById } from '@/api/order'
+import { getOrderList, payOrder, completeOrder, getOrderById, cancelOrder } from '@/api/order'
+import { PAYMENT_METHODS } from '@/utils/constants'
 
 const store = useStore()
 const activeTab = ref('all')
@@ -83,7 +91,7 @@ const fetchOrders = async () => {
     else if (activeTab.value === 'shipped') params.shippingStatus = 1
     else if (activeTab.value === 'completed') params.orderStatus = 2
     const res = await getOrderList(params)
-    orders.value = res.rows || []
+    orders.value = (res.rows || []).map(o => { if (!o._payMethod) o._payMethod = 'wechat'; return o })
     total.value = res.total || 0
   } catch (e) { console.error('获取订单失败:', e) } finally { loading.value = false }
 }
@@ -111,9 +119,10 @@ const statusTagType = (orderStatus) => {
 const handleTabChange = () => { pageNum.value = 1; fetchOrders() }
 
 const handlePay = async (order) => {
+  const method = order._payMethod || 'wechat'
   try {
-    await ElMessageBox.confirm('确认支付该订单？', '支付确认', { confirmButtonText: '确认支付', cancelButtonText: '取消', type: 'info' })
-    await payOrder(order.orderId, 'online')
+    await ElMessageBox.confirm(`确认使用${PAYMENT_METHODS.find(m => m.value === method)?.label || method}支付该订单？`, '支付确认', { confirmButtonText: '确认支付', cancelButtonText: '取消', type: 'info' })
+    await payOrder(order.orderId, method)
     ElMessage.success('支付成功！')
     fetchOrders()
   } catch (e) { if (e !== 'cancel') console.error('支付失败:', e) }
@@ -126,6 +135,22 @@ const handleConfirm = async (order) => {
     ElMessage.success('已确认收货！')
     fetchOrders()
   } catch (e) { if (e !== 'cancel') console.error('确认收货失败:', e) }
+}
+
+const canCancel = (order) => {
+  // 待确认(orderStatus=0) 或 已确认未付款未发货(orderStatus=1, paymentStatus=0, shippingStatus=0)
+  if (order.orderStatus === 0) return true
+  if (order.orderStatus === 1 && order.paymentStatus === 0 && order.shippingStatus === 0) return true
+  return false
+}
+
+const handleCancel = async (order) => {
+  try {
+    await ElMessageBox.confirm(`确认取消订单 #${order.orderId}？`, '取消订单', { confirmButtonText: '确认取消', cancelButtonText: '返回', type: 'warning' })
+    await cancelOrder(order.orderId)
+    ElMessage.success('订单已取消')
+    fetchOrders()
+  } catch (e) { if (e !== 'cancel') console.error('取消订单失败:', e) }
 }
 
 const handleViewDetail = async (order) => {

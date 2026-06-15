@@ -113,9 +113,10 @@
             <artifactId>spring-security-crypto</artifactId>
         </dependency>
 
+        <!-- WebSocket 支持（客服聊天） -->
         <dependency>
-            <groupId>org.springframework.security</groupId>
-            <artifactId>spring-security-crypto</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
 
         <dependency>

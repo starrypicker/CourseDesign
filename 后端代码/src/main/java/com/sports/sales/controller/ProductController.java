@@ -5,6 +5,7 @@ import com.sports.sales.common.Result;
 import com.sports.sales.dto.ProductQueryDTO;
 import com.sports.sales.entity.Product;
 import com.sports.sales.service.ProductService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,19 +34,22 @@ public class ProductController {
     }
 
     @PostMapping
-    public Result<Void> add(@Valid @RequestBody Product product) {
+    public Result<Void> add(@Valid @RequestBody Product product, HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到添加商品请求, productCode={}", product.getProductCode());
         return productService.add(product) ? Result.success() : Result.error("添加失败");
     }
 
     @PutMapping
-    public Result<Void> update(@Valid @RequestBody Product product) {
+    public Result<Void> update(@Valid @RequestBody Product product, HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到更新商品请求, productCode={}", product.getProductCode());
         return productService.update(product) ? Result.success() : Result.error("更新失败");
     }
 
     @DeleteMapping("/{productCode}")
-    public Result<Void> delete(@PathVariable String productCode) {
+    public Result<Void> delete(@PathVariable String productCode, HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到删除商品请求, productCode={}", productCode);
         return productService.delete(productCode) ? Result.success() : Result.error("删除失败");
     }
@@ -56,8 +60,17 @@ public class ProductController {
     }
 
     @PostMapping("/replenish")
-    public Result<Void> replenishStock(@RequestParam String productCode, @RequestParam Integer quantity) {
+    public Result<Void> replenishStock(@RequestParam String productCode, @RequestParam Integer quantity,
+                                        HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到补货请求, productCode={}, quantity={}", productCode, quantity);
         return productService.replenishStock(productCode, quantity) ? Result.success() : Result.error("补货失败");
+    }
+
+    private void checkAdmin(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"admin".equals(role)) {
+            throw new RuntimeException("无权限访问");
+        }
     }
 }

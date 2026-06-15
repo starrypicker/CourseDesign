@@ -40,7 +40,8 @@ public class CustomerController {
     }
 
     @PostMapping
-    public Result<Void> add(@RequestBody Customer customer) {
+    public Result<Void> add(@RequestBody Customer customer, HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到添加顾客请求, customerCode={}", customer.getCustomerCode());
         return customerService.add(customer) ? Result.success() : Result.error("添加失败");
     }
@@ -56,7 +57,8 @@ public class CustomerController {
     }
 
     @DeleteMapping("/{customerCode}")
-    public Result<Void> delete(@PathVariable String customerCode) {
+    public Result<Void> delete(@PathVariable String customerCode, HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到删除顾客请求, customerCode={}", customerCode);
         return customerService.delete(customerCode) ? Result.success() : Result.error("删除失败");
     }
@@ -82,6 +84,13 @@ public class CustomerController {
     /**
      * 校验顾客访问权限：管理员可操作所有，顾客只能操作自己
      */
+    private void checkAdmin(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"admin".equals(role)) {
+            throw new RuntimeException("无权限访问");
+        }
+    }
+
     private void checkCustomerAccess(HttpServletRequest request, String targetCustomerCode) {
         String role = (String) request.getAttribute("role");
         if (!"admin".equals(role)) {

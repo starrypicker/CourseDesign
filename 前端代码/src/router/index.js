@@ -14,6 +14,13 @@ const AdminOrders = () => import('@/views/admin/Orders.vue')
 const AdminUsers = () => import('@/views/admin/Users.vue')
 const AdminPurchase = () => import('@/views/admin/Purchase.vue')
 const AdminManufacturers = () => import('@/views/admin/Manufacturers.vue')
+const AdminReturns = () => import('@/views/admin/Returns.vue')
+const AdminChat = () => import('@/views/admin/Chat.vue')
+const AdminInvoices = () => import('@/views/admin/Invoices.vue')
+const NotFound = () => import('@/views/NotFound.vue')
+const FrontReturns = () => import('@/views/front/Returns.vue')
+const FrontChat = () => import('@/views/front/Chat.vue')
+const FrontInvoices = () => import('@/views/front/Invoices.vue')
 
 const routes = [
   {
@@ -31,7 +38,10 @@ const routes = [
       { path: 'products', name: 'Products', component: Products, meta: { title: '商品列表', requiresAuth: false } },
       { path: 'cart', name: 'Cart', component: Cart, meta: { title: '购物车', requiresAuth: true } },
       { path: 'orders', name: 'Orders', component: Orders, meta: { title: '我的订单', requiresAuth: true } },
-      { path: 'profile', name: 'Profile', component: Profile, meta: { title: '个人中心', requiresAuth: true } }
+      { path: 'profile', name: 'Profile', component: Profile, meta: { title: '个人中心', requiresAuth: true } },
+      { path: 'returns', name: 'FrontReturns', component: FrontReturns, meta: { title: '退换货', requiresAuth: true } },
+      { path: 'chat', name: 'FrontChat', component: FrontChat, meta: { title: '客服', requiresAuth: true } },
+      { path: 'invoices', name: 'FrontInvoices', component: FrontInvoices, meta: { title: '我的发票', requiresAuth: true } }
     ]
   },
   {
@@ -45,10 +55,13 @@ const routes = [
       { path: 'orders', name: 'AdminOrders', component: AdminOrders, meta: { title: '订单管理' } },
       { path: 'users', name: 'AdminUsers', component: AdminUsers, meta: { title: '用户管理' } },
       { path: 'purchase', name: 'AdminPurchase', component: AdminPurchase, meta: { title: '进货管理' } },
-      { path: 'manufacturers', name: 'AdminManufacturers', component: AdminManufacturers, meta: { title: '厂家管理' } }
+      { path: 'manufacturers', name: 'AdminManufacturers', component: AdminManufacturers, meta: { title: '厂家管理' } },
+      { path: 'returns', name: 'AdminReturns', component: AdminReturns, meta: { title: '退换货管理' } },
+      { path: 'chat', name: 'AdminChat', component: AdminChat, meta: { title: '客服消息' } },
+      { path: 'invoices', name: 'AdminInvoices', component: AdminInvoices, meta: { title: '发票管理' } }
     ]
   },
-  { path: '/:pathMatch(.*)*', redirect: '/home' }
+  { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound, meta: { title: '404 - 页面不存在' } }
 ]
 
 const router = createRouter({

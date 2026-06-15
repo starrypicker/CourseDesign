@@ -32,15 +32,23 @@ const handleLogin = async () => {
   if (!formRef.value) return
   try {
     await formRef.value.validate()
-    loading.value = true
+  } catch {
+    return // 表单验证未通过，element-plus会自动提示
+  }
+  loading.value = true
+  try {
     const res = await login({ username: form.username, password: form.password, role: props.role })
     store.dispatch('login', { token: res.token, userInfo: res.userInfo })
     ElMessage.success('登录成功')
     const redirect = route.query.redirect
     if (props.role === 'admin') router.push(redirect || '/admin/dashboard')
     else router.push(redirect || '/home')
-  } catch (error) { console.error('登录失败:', error) }
-  finally { loading.value = false }
+  } catch (error) {
+    // API错误已由axios拦截器处理，此处仅对未预期的错误兜底
+    if (error.message && error.message !== 'Error') {
+      ElMessage.error(error.message)
+    }
+  } finally { loading.value = false }
 }
 </script>
 

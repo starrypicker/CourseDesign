@@ -19,6 +19,11 @@
         </router-link>
         <template v-if="isLoggedIn">
           <router-link to="/orders" class="nav-item">订单</router-link>
+          <router-link to="/returns" class="nav-item">退换货</router-link>
+          <router-link to="/invoices" class="nav-item">发票</router-link>
+          <router-link to="/chat" class="nav-item">
+            <el-icon><ChatDotSquare /></el-icon>客服
+          </router-link>
           <router-link to="/profile" class="nav-item">个人</router-link>
           <el-dropdown @command="handleCommand">
             <span class="user-dropdown">
@@ -50,7 +55,7 @@
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { Trophy, ShoppingCart, UserFilled, ArrowDown } from '@element-plus/icons-vue'
+import { Trophy, ShoppingCart, UserFilled, ArrowDown, ChatDotSquare, Document } from '@element-plus/icons-vue'
 
 const router = useRouter()
 const store = useStore()

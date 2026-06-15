@@ -3,6 +3,7 @@ package com.sports.sales.controller;
 import com.sports.sales.common.Result;
 import com.sports.sales.entity.PurchaseRecord;
 import com.sports.sales.service.PurchaseRecordService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,24 +21,36 @@ public class PurchaseRecordController {
     }
 
     @GetMapping("/list")
-    public Result<List<PurchaseRecord>> list(@RequestParam(required = false) Integer status) {
+    public Result<List<PurchaseRecord>> list(@RequestParam(required = false) Integer status,
+                                              HttpServletRequest request) {
+        checkAdmin(request);
         return Result.success(purchaseRecordService.list(status));
     }
 
     @GetMapping("/{id}")
-    public Result<PurchaseRecord> getById(@PathVariable Long id) {
+    public Result<PurchaseRecord> getById(@PathVariable Long id, HttpServletRequest request) {
+        checkAdmin(request);
         return Result.success(purchaseRecordService.getById(id));
     }
 
     @PostMapping
-    public Result<Void> add(@RequestBody PurchaseRecord record) {
+    public Result<Void> add(@RequestBody PurchaseRecord record, HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到添加进货记录请求, productCode={}", record.getProductCode());
         return purchaseRecordService.add(record) ? Result.success() : Result.error("添加失败");
     }
 
     @PutMapping("/confirm/{id}")
-    public Result<Void> confirmPurchase(@PathVariable Long id) {
+    public Result<Void> confirmPurchase(@PathVariable Long id, HttpServletRequest request) {
+        checkAdmin(request);
         log.info("收到确认进货请求, id={}", id);
         return purchaseRecordService.confirmPurchase(id) ? Result.success() : Result.error("确认失败");
+    }
+
+    private void checkAdmin(HttpServletRequest request) {
+        String role = (String) request.getAttribute("role");
+        if (!"admin".equals(role)) {
+            throw new RuntimeException("无权限访问");
+        }
     }
 }

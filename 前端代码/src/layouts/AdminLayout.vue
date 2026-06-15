@@ -12,6 +12,9 @@
         <el-menu-item index="/admin/users"><el-icon><User /></el-icon><span>顾客管理</span></el-menu-item>
         <el-menu-item index="/admin/purchase"><el-icon><Box /></el-icon><span>进货管理</span></el-menu-item>
         <el-menu-item index="/admin/manufacturers"><el-icon><OfficeBuilding /></el-icon><span>厂家管理</span></el-menu-item>
+        <el-menu-item index="/admin/returns"><el-icon><RefreshLeft /></el-icon><span>退换货管理</span></el-menu-item>
+        <el-menu-item index="/admin/chat"><el-icon><ChatDotSquare /></el-icon><span>客服消息</span></el-menu-item>
+        <el-menu-item index="/admin/invoices"><el-icon><Document /></el-icon><span>发票管理</span></el-menu-item>
       </el-menu>
     </aside>
     <div class="admin-main">
@@ -43,7 +46,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { DataAnalysis, Goods, List, User, Box, Trophy, UserFilled, ArrowDown, OfficeBuilding } from '@element-plus/icons-vue'
+import { DataAnalysis, Goods, List, User, Box, Trophy, UserFilled, ArrowDown, OfficeBuilding, RefreshLeft, ChatDotSquare, Document } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

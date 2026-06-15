@@ -68,7 +68,7 @@ const fetchRecords = async () => {
 
 const fetchOptions = async () => {
   try {
-    const [products, manufacturers] = await Promise.all([getProductList({ pageNum: 1, pageSize: 100 }), getManufacturerList()])
+    const [products, manufacturers] = await Promise.all([getProductList({ pageNum: 1, pageSize: 200 }), getManufacturerList()])
     productOptions.value = products.rows || []; manufacturerOptions.value = manufacturers || []
   } catch (e) { console.error('获取选项失败:', e) }
 }

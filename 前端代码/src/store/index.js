@@ -64,8 +64,12 @@ export default createStore({
     }
   },
   actions: {
-    login({ commit }, { token, userInfo }) {
-      commit('CLEAR_CART')
+    login({ commit, state }, { token, userInfo }) {
+      // 仅当切换不同用户时清空购物车，同一用户重新登录保留购物车
+      const prevCustomerCode = state.userInfo?.customerCode
+      if (prevCustomerCode && prevCustomerCode !== userInfo?.customerCode) {
+        commit('CLEAR_CART')
+      }
       commit('SET_TOKEN', token)
       commit('SET_USER_INFO', userInfo)
     },

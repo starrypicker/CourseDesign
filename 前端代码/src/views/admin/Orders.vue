@@ -53,8 +53,12 @@
           <el-table-column prop="quantity" label="数量" width="80" />
           <el-table-column label="小计" width="100"><template #default="{ row }"><span style="color:#f56c6c;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template></el-table-column>
         </el-table>
-        <div class="detail-total">合计：<strong>¥ {{ Number(currentOrder.totalAmount || 0).toFixed(2) }}</strong></div>
+        <div id="shipping-print-area" class="detail-total">合计：<strong>¥ {{ Number(currentOrder.totalAmount || 0).toFixed(2) }}</strong></div>
       </div>
+      <template #footer>
+        <el-button type="success" @click="handlePrintShipping">打印邮寄信息</el-button>
+        <el-button @click="detailVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -103,6 +107,32 @@ const statusTagType = (orderStatus) => { const map = { 0: 'warning', 1: 'primary
 const handleViewDetail = async (row) => {
   try { const detail = await getOrderById(row.orderId); currentOrder.value = detail; detailVisible.value = true }
   catch (e) { currentOrder.value = row; detailVisible.value = true }
+}
+
+const handlePrintShipping = () => {
+  if (!currentOrder.value) return
+  const order = currentOrder.value
+  const shippingHtml = `
+    <div style="font-family:'Microsoft YaHei',sans-serif;padding:20px;max-width:500px;margin:0 auto;border:2px solid #333;padding:30px;border-radius:8px;">
+      <h2 style="text-align:center;margin-bottom:20px;">📦 邮寄信息单</h2>
+      <table style="width:100%;border-collapse:collapse;">
+        <tr><td style="padding:8px;font-weight:bold;width:80px;">订单号：</td><td style="padding:8px;">${order.orderId}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">收件人：</td><td style="padding:8px;font-size:16px;">${order.recipientName || '-'}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">联系电话：</td><td style="padding:8px;font-size:16px;">${order.recipientPhone || '-'}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">收件地址：</td><td style="padding:8px;font-size:16px;">${order.recipientAddress || '-'}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">运输要求：</td><td style="padding:8px;">${order.shippingRequirement || '无特殊要求'}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">货物重量：</td><td style="padding:8px;">${Number(order.totalWeight || 0).toFixed(2)} kg</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">运费：</td><td style="padding:8px;">¥ ${Number(order.shippingFee || 0).toFixed(2)}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">发货状态：</td><td style="padding:8px;">${order.shippingStatus === 0 ? '未发货' : order.shippingStatus === 1 ? '已发货' : '已签收'}</td></tr>
+      </table>
+      <p style="text-align:center;margin-top:30px;color:#999;font-size:12px;">打印时间：${new Date().toLocaleString('zh-CN')}</p>
+    </div>`
+  const win = window.open('', '_blank', 'width=600,height=700')
+  if (!win) return
+  win.document.write(`<html><head><title>邮寄信息 - 订单${order.orderId}</title></head><body>${shippingHtml}</body></html>`)
+  win.document.close()
+  win.focus()
+  setTimeout(() => { win.print(); win.close() }, 500)
 }
 
 const handleConfirm = (row) => {

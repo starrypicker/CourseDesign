@@ -8,7 +8,7 @@
       </el-row>
     </el-card>
     <el-card shadow="never">
-      <el-table :data="filteredList" stripe style="width:100%" v-loading="loading">
+      <el-table :data="paginatedList" stripe style="width:100%" v-loading="loading">
         <el-table-column prop="manufacturerCode" label="编码" width="100" />
         <el-table-column prop="manufacturerName" label="厂家名称" min-width="160" />
         <el-table-column prop="contactPerson" label="联系人" width="120" />
@@ -22,6 +22,10 @@
           </template>
         </el-table-column>
       </el-table>
+      <div style="display:flex;justify-content:center;margin-top:20px" v-if="filteredList.length > pageSize">
+        <el-pagination v-model:current-page="pageNum" :page-size="pageSize" :total="filteredList.length"
+          layout="total, prev, pager, next" />
+      </div>
     </el-card>
     <el-dialog v-model="dialogVisible" :title="dialogTitle" width="500px" destroy-on-close>
       <el-form :model="form" :rules="rules" ref="formRef" label-width="80px">
@@ -45,6 +49,8 @@ import { getManufacturerList, addManufacturer, updateManufacturer, deleteManufac
 const searchKeyword = ref('')
 const list = ref([])
 const loading = ref(false)
+const pageNum = ref(1)
+const pageSize = ref(10)
 const dialogVisible = ref(false)
 const dialogTitle = ref('添加厂家')
 const formRef = ref(null)
@@ -68,7 +74,12 @@ const filteredList = computed(() => {
   return list.value.filter(m => m.manufacturerName && m.manufacturerName.includes(searchKeyword.value))
 })
 
-const handleReset = () => { searchKeyword.value = ''; fetchData() }
+const paginatedList = computed(() => {
+  const start = (pageNum.value - 1) * pageSize.value
+  return filteredList.value.slice(start, start + pageSize.value)
+})
+
+const handleReset = () => { searchKeyword.value = ''; pageNum.value = 1; fetchData() }
 
 const resetForm = () => { form.manufacturerCode = ''; form.manufacturerName = ''; form.contactPerson = ''; form.phone = ''; form.address = '' }
 

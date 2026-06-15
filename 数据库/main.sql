@@ -159,4 +159,74 @@ INSERT INTO customer (customer_code, customer_name, contact_name, address, posta
 ('C002', '飞跃运动商城', '陈经理', '深圳市南山区科技园路50号', '518057', '0755-26886666', 'fly@sports.com'),
 ('C003', '健身体育批发', '周经理', '成都市武侯区人民南路200号', '610041', '028-85557777', 'fit@sports.com');
 
+-- ============================================
+-- 退换货申请表
+-- ============================================
+DROP TABLE IF EXISTS return_request;
+CREATE TABLE return_request (
+    id BIGINT AUTO_INCREMENT,
+    order_id BIGINT NOT NULL COMMENT '关联订单ID',
+    customer_code VARCHAR(20) NOT NULL COMMENT '申请人编码',
+    type TINYINT NOT NULL DEFAULT 0 COMMENT '类型:0-退货退款,1-换货',
+    reason VARCHAR(500) COMMENT '申请原因',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '状态:0-待审核,1-已通过,2-已拒绝,3-已完成',
+    admin_remark VARCHAR(500) COMMENT '管理员备注',
+    refund_amount DECIMAL(12,2) COMMENT '退款金额',
+    handled_by VARCHAR(50) COMMENT '处理人',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    KEY idx_order (order_id),
+    KEY idx_customer (customer_code),
+    KEY idx_status (status),
+    CONSTRAINT fk_return_order FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    CONSTRAINT fk_return_customer FOREIGN KEY (customer_code) REFERENCES customer(customer_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='退换货申请表';
+
+-- ============================================
+-- 客服聊天消息表
+-- ============================================
+DROP TABLE IF EXISTS chat_message;
+CREATE TABLE chat_message (
+    id BIGINT AUTO_INCREMENT,
+    sender_code VARCHAR(50) NOT NULL COMMENT '发送者编码',
+    sender_name VARCHAR(100) COMMENT '发送者名称',
+    sender_role VARCHAR(20) NOT NULL COMMENT '发送者角色:customer/admin',
+    receiver_code VARCHAR(50) COMMENT '接收者编码',
+    content TEXT NOT NULL COMMENT '消息内容',
+    is_read TINYINT DEFAULT 0 COMMENT '是否已读:0-未读,1-已读',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (id),
+    KEY idx_sender (sender_code),
+    KEY idx_receiver (receiver_code),
+    KEY idx_time (create_time)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='客服聊天消息表';
+
 -- 测试用户由 DataInitializer 组件在应用启动时自动创建，密码均为 123456
+
+-- ============================================
+-- 发票信息表
+-- ============================================
+DROP TABLE IF EXISTS invoice;
+CREATE TABLE invoice (
+    id BIGINT AUTO_INCREMENT,
+    order_id BIGINT NOT NULL COMMENT '关联订单ID',
+    customer_code VARCHAR(20) NOT NULL COMMENT '顾客代码',
+    invoice_no VARCHAR(50) COMMENT '发票号码',
+    invoice_title VARCHAR(200) NOT NULL COMMENT '发票抬头',
+    tax_no VARCHAR(50) COMMENT '税号',
+    invoice_type VARCHAR(20) NOT NULL DEFAULT 'personal' COMMENT '发票类型:personal-个人,company-企业',
+    amount DECIMAL(12,2) NOT NULL COMMENT '发票金额',
+    invoice_date DATETIME COMMENT '开票日期',
+    status TINYINT NOT NULL DEFAULT 0 COMMENT '状态:0-待开票,1-已开票',
+    remark VARCHAR(500) COMMENT '备注',
+    create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (id),
+    KEY idx_order (order_id),
+    KEY idx_customer (customer_code),
+    KEY idx_status (status),
+    CONSTRAINT fk_invoice_order FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    CONSTRAINT fk_invoice_customer FOREIGN KEY (customer_code) REFERENCES customer(customer_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发票信息表';
+
