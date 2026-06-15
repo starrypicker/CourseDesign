@@ -31,4 +31,8 @@
     <update id="updatePasswordByCustomerCode">
         UPDATE sys_user SET password = #{password} WHERE customer_code = #{customerCode}
     </update>
+
+    <delete id="deleteByCustomerCode">
+        DELETE FROM sys_user WHERE customer_code = #{customerCode}
+    </delete>
 </mapper>

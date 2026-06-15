@@ -15,4 +15,7 @@ public interface SysUserMapper {
 
     /** 根据 customerCode 更新系统用户密码 */
     int updatePasswordByCustomerCode(@Param("customerCode") String customerCode, @Param("password") String password);
+
+    /** 根据 customerCode 删除系统用户 */
+    int deleteByCustomerCode(@Param("customerCode") String customerCode);
 }

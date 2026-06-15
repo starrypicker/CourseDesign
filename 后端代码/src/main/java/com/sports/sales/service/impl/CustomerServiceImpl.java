@@ -4,6 +4,9 @@ import com.sports.sales.common.PageResult;
 import com.sports.sales.dto.CustomerQueryDTO;
 import com.sports.sales.entity.Customer;
 import com.sports.sales.mapper.CustomerMapper;
+import com.sports.sales.mapper.InvoiceMapper;
+import com.sports.sales.mapper.OrderMapper;
+import com.sports.sales.mapper.ReturnRequestMapper;
 import com.sports.sales.mapper.SysUserMapper;
 import com.sports.sales.service.CustomerService;
 import com.sports.sales.util.CryptoUtil;
@@ -28,15 +31,22 @@ public class CustomerServiceImpl implements CustomerService {
     private final PasswordEncoder passwordEncoder;
     private final SysUserMapper sysUserMapper;
     private final RedissonClient redissonClient;
+    private final OrderMapper orderMapper;
+    private final InvoiceMapper invoiceMapper;
+    private final ReturnRequestMapper returnRequestMapper;
 
     public CustomerServiceImpl(CustomerMapper customerMapper, CryptoUtil cryptoUtil,
                                PasswordEncoder passwordEncoder, SysUserMapper sysUserMapper,
-                               RedissonClient redissonClient) {
+                               RedissonClient redissonClient, OrderMapper orderMapper,
+                               InvoiceMapper invoiceMapper, ReturnRequestMapper returnRequestMapper) {
         this.customerMapper = customerMapper;
         this.cryptoUtil = cryptoUtil;
         this.passwordEncoder = passwordEncoder;
         this.sysUserMapper = sysUserMapper;
         this.redissonClient = redissonClient;
+        this.orderMapper = orderMapper;
+        this.invoiceMapper = invoiceMapper;
+        this.returnRequestMapper = returnRequestMapper;
     }
 
     @Override
@@ -108,7 +118,31 @@ public class CustomerServiceImpl implements CustomerService {
     @CacheEvict(value = "customer", key = "#customerCode")
     public boolean delete(String customerCode) {
         log.info("删除顾客, customerCode={}", customerCode);
-        return customerMapper.deleteByCode(customerCode) > 0;
+
+        // 检查是否有关联订单
+        int orderCount = orderMapper.countByCustomerCode(customerCode);
+        if (orderCount > 0) {
+            throw new RuntimeException("该顾客还有 " + orderCount + " 笔订单，请先处理订单后再删除顾客");
+        }
+        // 检查是否有关联发票
+        int invoiceCount = invoiceMapper.countByCustomerCode(customerCode);
+        if (invoiceCount > 0) {
+            throw new RuntimeException("该顾客还有 " + invoiceCount + " 张发票记录，请先处理后再删除顾客");
+        }
+        // 检查是否有关联退换货申请
+        int returnCount = returnRequestMapper.countByCustomerCode(customerCode);
+        if (returnCount > 0) {
+            throw new RuntimeException("该顾客还有 " + returnCount + " 条退换货记录，请先处理后再删除顾客");
+        }
+
+        // 先删除关联的 sys_user 记录，解除外键约束
+        sysUserMapper.deleteByCustomerCode(customerCode);
+        // 再删除顾客记录
+        int rows = customerMapper.deleteByCode(customerCode);
+        if (rows > 0) {
+            log.info("顾客删除成功, customerCode={}", customerCode);
+        }
+        return rows > 0;
     }
 
     @Override
