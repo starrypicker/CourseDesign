@@ -136,6 +136,11 @@ public class OrderServiceImpl implements OrderService {
                 if (product == null) {
                     throw new RuntimeException("商品不存在: " + itemDTO.getProductCode());
                 }
+                if (product.getStatus() == null || product.getStatus() != 1) {
+                    String msg = String.format("商品[%s]已下架，无法购买", product.getProductName());
+                    log.warn(msg);
+                    throw new RuntimeException(msg);
+                }
                 if (product.getStockQuantity() == null || product.getStockQuantity() < itemDTO.getQuantity()) {
                     String msg = String.format("商品[%s]库存不足，当前库存: %d，需要: %d",
                             product.getProductName(), product.getStockQuantity() != null ? product.getStockQuantity() : 0, itemDTO.getQuantity());

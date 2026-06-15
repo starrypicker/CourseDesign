@@ -27,10 +27,27 @@ export default createStore({
       const existing = state.cart.find(i => i.productCode === item.productCode)
       if (existing) {
         existing.quantity += item.quantity || 1
+        // 同步更新库存信息
+        if (item.stockQuantity !== undefined) {
+          existing.stockQuantity = item.stockQuantity
+        }
       } else {
         state.cart.push({ ...item, quantity: item.quantity || 1 })
       }
       localStorage.setItem('cart', JSON.stringify(state.cart))
+    },
+    SYNC_CART_STOCK(state, stockMap) {
+      // stockMap: { productCode: stockQuantity }
+      let changed = false
+      state.cart.forEach(item => {
+        if (stockMap[item.productCode] !== undefined) {
+          item.stockQuantity = stockMap[item.productCode]
+          changed = true
+        }
+      })
+      if (changed) {
+        localStorage.setItem('cart', JSON.stringify(state.cart))
+      }
     },
     UPDATE_CART_QUANTITY(state, { productCode, quantity }) {
       const item = state.cart.find(i => i.productCode === productCode)
@@ -56,7 +73,23 @@ export default createStore({
     addToCart({ commit }, item) { commit('ADD_TO_CART', item) },
     updateCartQuantity({ commit }, payload) { commit('UPDATE_CART_QUANTITY', payload) },
     removeFromCart({ commit }, productCode) { commit('REMOVE_FROM_CART', productCode) },
-    clearCart({ commit }) { commit('CLEAR_CART') }
+    clearCart({ commit }) { commit('CLEAR_CART') },
+    async syncCartStock({ commit, state }) {
+      if (state.cart.length === 0) return
+      try {
+        const { getProductByCode } = await import('@/api/product')
+        const stockMap = {}
+        await Promise.all(state.cart.map(async item => {
+          try {
+            const product = await getProductByCode(item.productCode)
+            if (product) {
+              stockMap[item.productCode] = product.stockQuantity
+            }
+          } catch {}
+        }))
+        commit('SYNC_CART_STOCK', stockMap)
+      } catch {}
+    }
   },
   getters: {
     isLoggedIn: state => !!state.token,

@@ -98,7 +98,11 @@ const detailProduct = ref(null)
 const handleSearch = () => { pageNum.value = 1; fetchProducts() }
 const handleViewDetail = (item) => { detailProduct.value = item; detailVisible.value = true }
 const handleAddToCart = (item) => {
-  store.dispatch('addToCart', { productCode: item.productCode, productName: item.productName, unitPrice: item.unitPrice, quantity: 1 })
+  if (item.stockQuantity <= 0) {
+    ElMessage.warning('该商品已售罄，无法加入购物车')
+    return
+  }
+  store.dispatch('addToCart', { productCode: item.productCode, productName: item.productName, unitPrice: item.unitPrice, stockQuantity: item.stockQuantity, quantity: 1 })
   ElMessage.success(`已将 ${item.productName} 加入购物车！`)
 }
 </script>

@@ -60,6 +60,39 @@ const handleCheckout = async () => {
     } catch {}
     return
   }
+
+  // 同步最新库存信息并验证
+  await store.dispatch('syncCartStock')
+  const outOfStockItems = []
+  const insufficientItems = []
+  cart.value.forEach(item => {
+    const stock = item.stockQuantity
+    if (stock !== undefined) {
+      if (stock <= 0) {
+        outOfStockItems.push(item)
+      } else if (stock < item.quantity) {
+        insufficientItems.push({ ...item, availableStock: stock })
+      }
+    }
+  })
+
+  // 移除已售罄的商品
+  if (outOfStockItems.length > 0) {
+    const names = outOfStockItems.map(i => i.productName).join('、')
+    outOfStockItems.forEach(i => store.dispatch('removeFromCart', i.productCode))
+    ElMessage.warning(`以下商品已售罄，已从购物车移除：${names}`)
+  }
+
+  // 处理库存不足的商品
+  if (insufficientItems.length > 0) {
+    const names = insufficientItems.map(i => `${i.productName}(仅剩${i.availableStock}件)`).join('、')
+    insufficientItems.forEach(i => store.dispatch('updateCartQuantity', { productCode: i.productCode, quantity: i.availableStock }))
+    ElMessage.warning(`以下商品库存不足，已自动调整数量：${names}`)
+  }
+
+  // 再次检查购物车是否为空
+  if (cart.value.length === 0) { ElMessage.warning('购物车中所有商品均已售罄，请重新选购'); return }
+
   try { await ElMessageBox.confirm('确认提交订单？', '提示', { confirmButtonText: '确定下单', cancelButtonText: '再想想', type: 'info' }) } catch { return }
   try {
     const { createOrder } = await import('@/api/order')

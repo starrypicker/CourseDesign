@@ -30,6 +30,7 @@ service.interceptors.response.use(
       if (res.code === 401) {
         localStorage.removeItem('token')
         localStorage.removeItem('userInfo')
+        localStorage.removeItem('cart')
         router.push('/login')
       }
       return Promise.reject(new Error(res.message || 'Error'))
@@ -48,6 +49,7 @@ service.interceptors.response.use(
           message = '登录已过期，请重新登录'
           localStorage.removeItem('token')
           localStorage.removeItem('userInfo')
+          localStorage.removeItem('cart')
           router.push('/login')
           break
         case 403: message = '没有权限访问'; break

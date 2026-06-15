@@ -13,7 +13,12 @@
           <div class="product-info">
             <h3>{{ item.productName }}</h3>
             <p class="price">¥ {{ Number(item.unitPrice || 0).toFixed(2) }}</p>
-            <el-button type="warning" plain size="small" @click="handleAddToCart(item)">加入购物车</el-button>
+            <p v-if="item.stockQuantity <= item.minStock && item.stockQuantity > 0" class="stock-warning">库存紧张 ({{ item.stockQuantity }})</p>
+            <p v-else-if="item.stockQuantity <= 0" class="stock-sold-out">已售罄</p>
+            <el-button type="warning" plain size="small" @click="handleAddToCart(item)"
+              :disabled="item.stockQuantity <= 0">
+              <el-icon><ShoppingCart /></el-icon>{{ item.stockQuantity <= 0 ? '已售罄' : '加入购物车' }}
+            </el-button>
           </div>
         </el-card>
       </el-col>
@@ -26,7 +31,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { ElMessage } from 'element-plus'
-import { ShoppingBag } from '@element-plus/icons-vue'
+import { ShoppingBag, ShoppingCart } from '@element-plus/icons-vue'
 import { getProductList } from '@/api/product'
 
 const router = useRouter()
@@ -44,7 +49,11 @@ onMounted(() => fetchHotProducts())
 
 const goToProducts = () => router.push('/products')
 const handleAddToCart = (item) => {
-  store.dispatch('addToCart', { productCode: item.productCode, productName: item.productName, unitPrice: item.unitPrice, quantity: 1 })
+  if (item.stockQuantity <= 0) {
+    ElMessage.warning('该商品已售罄，无法加入购物车')
+    return
+  }
+  store.dispatch('addToCart', { productCode: item.productCode, productName: item.productName, unitPrice: item.unitPrice, stockQuantity: item.stockQuantity, quantity: 1 })
   ElMessage.success(`已将 ${item.productName} 加入购物车！`)
 }
 </script>
@@ -59,5 +68,7 @@ const handleAddToCart = (item) => {
 .product-card { margin-bottom: 20px; text-align: center; }
 .product-image { height: 160px; display: flex; align-items: center; justify-content: center; background-color: #f5f7fa; border-radius: 4px; margin-bottom: 15px; }
 .product-info h3 { font-size: 16px; margin-bottom: 10px; }
-.product-info .price { color: #f56c6c; font-size: 18px; font-weight: bold; margin-bottom: 15px; }
+.product-info .price { color: #f56c6c; font-size: 18px; font-weight: bold; margin-bottom: 8px; }
+.stock-warning { color: #E6A23C; font-size: 12px; margin: 0 0 8px 0; }
+.stock-sold-out { color: #f56c6c; font-size: 12px; margin: 0 0 8px 0; font-weight: 500; }
 </style>

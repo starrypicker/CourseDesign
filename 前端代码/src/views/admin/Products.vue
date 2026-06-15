@@ -114,7 +114,21 @@ const handleSubmit = async () => {
 const handleToggleStatus = async (row) => {
   const newStatus = row.status === 1 ? 0 : 1
   try {
-    await updateProduct({ productCode: row.productCode, productName: row.productName, manufacturerCode: row.manufacturerCode, unitPrice: row.unitPrice, stockQuantity: row.stockQuantity, minStock: row.minStock, weight: row.weight, productDesc: row.productDesc, status: newStatus })
+    // 先获取最新商品数据，避免并发修改覆盖
+    const { getProductByCode } = await import('@/api/product')
+    const latest = await getProductByCode(row.productCode)
+    if (!latest) { ElMessage.error('商品不存在'); return }
+    await updateProduct({
+      productCode: latest.productCode,
+      productName: latest.productName,
+      manufacturerCode: latest.manufacturerCode,
+      unitPrice: latest.unitPrice,
+      stockQuantity: latest.stockQuantity,
+      minStock: latest.minStock,
+      weight: latest.weight,
+      productDesc: latest.productDesc,
+      status: newStatus
+    })
     ElMessage.success(`商品已${newStatus === 1 ? '上架' : '下架'}`); fetchProducts()
   } catch (e) { console.error('状态切换失败:', e) }
 }
