@@ -192,10 +192,11 @@ const handlePrintInvoice = (row) => {
     win.close()
     return
   }
-  // 兜底：用行数据构造
+  // 兜底：用行数据构造（安全转义防止XSS）
+  const esc = (str) => { if (!str) return ''; const d = document.createElement('div'); d.appendChild(document.createTextNode(str)); return d.innerHTML }
   const inv = row || detail.value
   if (!inv) return
-  const html = `<div style="font-family:'Microsoft YaHei',sans-serif;padding:20px;max-width:500px;margin:0 auto;border:2px solid #333;padding:30px;border-radius:8px;"><h2 style="text-align:center;">🧾 电子发票</h2><p>发票号码：${inv.invoiceNo || '-'}</p><p>发票抬头：${inv.invoiceTitle}</p><p>发票金额：¥ ${Number(inv.amount || 0).toFixed(2)}</p><p>开票日期：${inv.invoiceDate || '-'}</p></div>`
+  const html = `<div style="font-family:'Microsoft YaHei',sans-serif;padding:20px;max-width:500px;margin:0 auto;border:2px solid #333;padding:30px;border-radius:8px;"><h2 style="text-align:center;">🧾 电子发票</h2><p>发票号码：${esc(inv.invoiceNo)}</p><p>发票抬头：${esc(inv.invoiceTitle)}</p><p>发票金额：¥ ${Number(inv.amount || 0).toFixed(2)}</p><p>开票日期：${esc(inv.invoiceDate)}</p></div>`
   const win = window.open('', '_blank', 'width=700,height=600')
   if (!win) return
   win.document.write(`<html><head><title>发票打印</title></head><body>${html}</body></html>`)

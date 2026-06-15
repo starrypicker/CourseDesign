@@ -7,6 +7,8 @@ import com.sports.sales.mapper.CustomerMapper;
 import com.sports.sales.mapper.SysUserMapper;
 import com.sports.sales.service.CustomerService;
 import com.sports.sales.util.CryptoUtil;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class CustomerServiceImpl implements CustomerService {
@@ -24,13 +27,16 @@ public class CustomerServiceImpl implements CustomerService {
     private final CryptoUtil cryptoUtil;
     private final PasswordEncoder passwordEncoder;
     private final SysUserMapper sysUserMapper;
+    private final RedissonClient redissonClient;
 
     public CustomerServiceImpl(CustomerMapper customerMapper, CryptoUtil cryptoUtil,
-                               PasswordEncoder passwordEncoder, SysUserMapper sysUserMapper) {
+                               PasswordEncoder passwordEncoder, SysUserMapper sysUserMapper,
+                               RedissonClient redissonClient) {
         this.customerMapper = customerMapper;
         this.cryptoUtil = cryptoUtil;
         this.passwordEncoder = passwordEncoder;
         this.sysUserMapper = sysUserMapper;
+        this.redissonClient = redissonClient;
     }
 
     @Override
@@ -106,6 +112,7 @@ public class CustomerServiceImpl implements CustomerService {
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public Customer login(String customerCode, String password) {
         log.info("顾客登录, customerCode={}", customerCode);
         Customer customer = customerMapper.selectByCode(customerCode);
@@ -120,11 +127,30 @@ public class CustomerServiceImpl implements CustomerService {
             return null;
         }
 
-        // 如果是旧明文密码，自动升级为BCrypt哈希
+        // 如果是旧明文密码，自动升级为BCrypt哈希（加分布式锁防止并发重复升级）
         if (needPasswordUpgrade(customer.getPassword())) {
-            customer.setPassword(passwordEncoder.encode(password));
-            customerMapper.updateByCode(customer);
-            log.info("密码已自动升级为BCrypt哈希, customerCode={}", customerCode);
+            RLock lock = redissonClient.getLock("lock:pwdUpgrade:" + customerCode);
+            try {
+                if (lock.tryLock(2, 10, TimeUnit.SECONDS)) {
+                    try {
+                        // 重新读取最新的密码，防止已被其他线程升级
+                        Customer latest = customerMapper.selectByCode(customerCode);
+                        if (latest != null && needPasswordUpgrade(latest.getPassword())) {
+                            String encoded = passwordEncoder.encode(password);
+                            latest.setPassword(encoded);
+                            customerMapper.updateByCode(latest);
+                            log.info("密码已自动升级为BCrypt哈希, customerCode={}", customerCode);
+                        }
+                    } finally {
+                        if (lock.isHeldByCurrentThread()) {
+                            lock.unlock();
+                        }
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("密码升级被中断, customerCode={}", customerCode);
+            }
         }
 
         decryptSensitiveData(customer);

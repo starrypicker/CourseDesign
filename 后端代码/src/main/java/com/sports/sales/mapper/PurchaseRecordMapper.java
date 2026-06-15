@@ -15,4 +15,12 @@ public interface PurchaseRecordMapper {
     int insert(PurchaseRecord record);
 
     int updateStatus(@Param("id") Long id, @Param("status") Integer status);
+
+    int countPendingByProductCode(@Param("productCode") String productCode);
+
+    Long selectCount(@Param("status") Integer status);
+
+    List<PurchaseRecord> selectList(@Param("status") Integer status,
+                                    @Param("offset") int offset,
+                                    @Param("limit") int limit);
 }

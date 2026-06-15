@@ -49,6 +49,18 @@ public class StockMonitorTask {
             log.info("商品[{}]库存已充足，无需补货", product.getProductName());
             return;
         }
+        // 检查是否已存在待处理的进货记录，防止重复创建
+        int pendingCount = purchaseRecordMapper.countPendingByProductCode(product.getProductCode());
+        if (pendingCount > 0) {
+            log.info("商品[{}]已存在{}条待处理进货记录，跳过自动补货", product.getProductName(), pendingCount);
+            return;
+        }
+        // 限制单次补货数量上限，防止异常情况
+        int maxReplenish = Math.max(minStock * 5, 1000);
+        if (replenishQty > maxReplenish) {
+            log.warn("商品[{}]补货数量{}超过上限{}，已限制", product.getProductName(), replenishQty, maxReplenish);
+            replenishQty = maxReplenish;
+        }
         PurchaseRecord record = new PurchaseRecord();
         record.setProductCode(product.getProductCode());
         record.setManufacturerCode(product.getManufacturerCode());

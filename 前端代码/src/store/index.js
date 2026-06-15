@@ -4,7 +4,16 @@ export default createStore({
   state: {
     token: localStorage.getItem('token') || '',
     userInfo: (() => { try { return JSON.parse(localStorage.getItem('userInfo') || 'null') } catch { return null } })(),
-    cart: (() => { try { return JSON.parse(localStorage.getItem('cart') || '[]') } catch { return [] } })()
+    cart: (() => {
+      try {
+        const raw = JSON.parse(localStorage.getItem('cart') || '[]')
+        if (!Array.isArray(raw)) return []
+        return raw.filter(item =>
+          item && typeof item.productCode === 'string' &&
+          typeof item.quantity === 'number' && item.quantity > 0
+        )
+      } catch { return [] }
+    })()
   },
   mutations: {
     SET_TOKEN(state, token) {

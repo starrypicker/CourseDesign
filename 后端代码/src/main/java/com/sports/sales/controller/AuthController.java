@@ -73,6 +73,7 @@ public class AuthController {
                 userInfo.put("customerName", customer.getCustomerName());
                 userInfo.put("contactName", customer.getContactName());
                 userInfo.put("address", customer.getAddress());
+                userInfo.put("postalCode", customer.getPostalCode());
                 userInfo.put("phone", customer.getPhone());
                 userInfo.put("email", customer.getEmail());
             }
@@ -91,6 +92,10 @@ public class AuthController {
         String username = registerData.get("username");
         String password = registerData.get("password");
         String customerName = registerData.get("customerName");
+        String contactName = registerData.get("contactName");
+        String phone = registerData.get("phone");
+        String address = registerData.get("address");
+        String postalCode = registerData.get("postalCode");
 
         if (username == null || username.trim().isEmpty()) {
             return Result.error(400, "用户名不能为空");
@@ -112,6 +117,10 @@ public class AuthController {
         Customer customer = new Customer();
         customer.setCustomerCode(username);
         customer.setCustomerName(customerName != null ? customerName : username);
+        customer.setContactName(contactName);
+        customer.setPhone(phone);
+        customer.setAddress(address);
+        customer.setPostalCode(postalCode);
         customer.setPassword(password);
         customer.setStatus(1);
         customerService.add(customer);

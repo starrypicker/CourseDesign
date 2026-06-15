@@ -40,12 +40,12 @@ public interface OrderMapper {
     /** 待处理订单数（待确认） */
     long selectPendingOrderCount();
 
-    /** 总顾客数 */
-    long selectCustomerCount();
-
     /** 本月订单数 */
     long selectMonthOrderCount();
 
     /** 本月销售额 */
     java.math.BigDecimal selectMonthSales();
+
+    /** 缺货订单列表（canSupply=0） */
+    List<Orders> selectOutOfStockOrders();
 }

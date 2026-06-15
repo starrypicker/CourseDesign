@@ -6,6 +6,7 @@ import com.sports.sales.dto.OrderQueryDTO;
 import com.sports.sales.entity.OrderItem;
 import com.sports.sales.entity.Orders;
 import com.sports.sales.entity.Product;
+import com.sports.sales.mapper.CustomerMapper;
 import com.sports.sales.mapper.OrderItemMapper;
 import com.sports.sales.mapper.OrderMapper;
 import com.sports.sales.mapper.ProductMapper;
@@ -34,19 +35,27 @@ public class OrderServiceImpl implements OrderService {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OrderServiceImpl.class);
 
+    // 运费计算参数
+    private static final java.math.BigDecimal SHIPPING_BASE_FEE = java.math.BigDecimal.valueOf(10);
+    private static final java.math.BigDecimal SHIPPING_WEIGHT_THRESHOLD = java.math.BigDecimal.valueOf(5);
+    private static final java.math.BigDecimal SHIPPING_PER_KG_FEE = java.math.BigDecimal.valueOf(2);
+
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final ProductMapper productMapper;
+    private final CustomerMapper customerMapper;
     private final RedissonClient redissonClient;
     private final CryptoUtil cryptoUtil;
     private final CacheManager cacheManager;
 
     public OrderServiceImpl(OrderMapper orderMapper, OrderItemMapper orderItemMapper,
-                            ProductMapper productMapper, RedissonClient redissonClient,
-                            CryptoUtil cryptoUtil, CacheManager cacheManager) {
+                            ProductMapper productMapper, CustomerMapper customerMapper,
+                            RedissonClient redissonClient, CryptoUtil cryptoUtil,
+                            CacheManager cacheManager) {
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
+        this.customerMapper = customerMapper;
         this.redissonClient = redissonClient;
         this.cryptoUtil = cryptoUtil;
         this.cacheManager = cacheManager;
@@ -142,10 +151,11 @@ public class OrderServiceImpl implements OrderService {
                     throw new RuntimeException(msg);
                 }
                 if (product.getStockQuantity() == null || product.getStockQuantity() < itemDTO.getQuantity()) {
-                    String msg = String.format("商品[%s]库存不足，当前库存: %d，需要: %d",
+                    String msg = String.format("商品[%s]库存不足，当前库存: %d，需要: %d，订单将标记为缺货",
                             product.getProductName(), product.getStockQuantity() != null ? product.getStockQuantity() : 0, itemDTO.getQuantity());
                     log.warn(msg);
-                    throw new RuntimeException(msg);
+                    // 库存不足时标记为缺货订单，不抛异常，允许创建
+                    order.setCanSupply(0);
                 }
 
                 OrderItem item = new OrderItem();
@@ -162,7 +172,10 @@ public class OrderServiceImpl implements OrderService {
                         product.getWeight() != null ? product.getWeight().multiply(BigDecimal.valueOf(itemDTO.getQuantity())) : BigDecimal.ZERO);
             }
 
-            order.setCanSupply(1);
+            // canSupply 可能在前面检查库存不足时已被设为0，此处仅当仍有库存时设为1
+            if (order.getCanSupply() == null) {
+                order.setCanSupply(1);
+            }
             order.setTotalAmount(totalAmount);
             order.setTotalWeight(totalWeight);
             order.setShippingFee(calculateShippingFee(totalWeight));
@@ -174,9 +187,13 @@ public class OrderServiceImpl implements OrderService {
             }
             orderItemMapper.insertBatch(items);
 
+            // 仅可供货的商品才扣减库存，缺货商品保留库存供后续进货
             for (OrderCreateDTO.OrderItemDTO itemDTO : dto.getItems()) {
-                productMapper.updateStock(itemDTO.getProductCode(), -itemDTO.getQuantity());
-                evictProductCacheByCode(itemDTO.getProductCode());
+                Product p = productMapper.selectByCode(itemDTO.getProductCode());
+                if (p != null && p.getStockQuantity() != null && p.getStockQuantity() >= itemDTO.getQuantity()) {
+                    productMapper.updateStock(itemDTO.getProductCode(), -itemDTO.getQuantity());
+                    evictProductCacheByCode(itemDTO.getProductCode());
+                }
             }
             evictLowStockCache();
 
@@ -249,10 +266,9 @@ public class OrderServiceImpl implements OrderService {
         if (order.getShippingStatus() != null && order.getShippingStatus() != 0) {
             throw new RuntimeException("订单已发货，无法取消，请联系客服处理");
         }
-        // 已付款订单取消时自动退款
+        // 已付款订单取消时自动退款（使用专用方法避免覆盖加密字段）
         if (order.getPaymentStatus() != null && order.getPaymentStatus() == 1) {
-            order.setPaymentStatus(2); // 2-已退款
-            orderMapper.updateById(order);
+            orderMapper.updatePaymentStatus(orderId, 2); // 2-已退款
             log.info("订单退款, orderId={}, amount={}", orderId, order.getTotalAmount());
         }
         if (order.getCanSupply() != null && order.getCanSupply() == 1) {
@@ -288,6 +304,7 @@ public class OrderServiceImpl implements OrderService {
         }
         order.setPaymentStatus(1);
         order.setPaymentMethod(paymentMethod);
+        order.setPaymentListNo("PAY-" + System.currentTimeMillis() + "-" + java.util.UUID.randomUUID().toString().substring(0, 8) + "-" + orderId);
         order.setPaymentTime(LocalDateTime.now());
         return orderMapper.updateById(order) > 0;
     }
@@ -343,11 +360,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private BigDecimal calculateShippingFee(BigDecimal totalWeight) {
-        BigDecimal baseFee = BigDecimal.valueOf(10);
-        BigDecimal extraFee = totalWeight.subtract(BigDecimal.valueOf(5))
-                .max(BigDecimal.ZERO)
-                .multiply(BigDecimal.valueOf(2));
-        return baseFee.add(extraFee);
+        BigDecimal extraWeight = totalWeight.subtract(SHIPPING_WEIGHT_THRESHOLD).max(BigDecimal.ZERO);
+        BigDecimal extraFee = extraWeight.multiply(SHIPPING_PER_KG_FEE);
+        return SHIPPING_BASE_FEE.add(extraFee);
     }
 
     private void decryptOrderSensitiveData(Orders order) {
@@ -392,7 +407,7 @@ public class OrderServiceImpl implements OrderService {
         stats.put("totalProducts", totalProducts);
 
         // 总顾客数
-        long totalCustomers = orderMapper.selectCustomerCount();
+        long totalCustomers = customerMapper.selectTotalCount();
         stats.put("totalCustomers", totalCustomers);
 
         // 本月订单数
@@ -412,6 +427,45 @@ public class OrderServiceImpl implements OrderService {
         stats.put("totalSold", totalSold != null ? totalSold : 0L);
 
         return stats;
+    }
+
+    @Override
+    public List<Orders> getOutOfStockOrders() {
+        List<Orders> orders = orderMapper.selectOutOfStockOrders();
+        orders.forEach(o -> {
+            o.setItems(orderItemMapper.selectByOrderId(o.getOrderId()));
+            decryptOrderSensitiveData(o);
+        });
+        return orders;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @CacheEvict(value = "order", key = "#orderId")
+    public boolean markAsSuppliable(Long orderId) {
+        log.info("标记订单为可供货, orderId={}", orderId);
+        Orders order = orderMapper.selectById(orderId);
+        if (order == null) {
+            throw new RuntimeException("订单不存在");
+        }
+        if (order.getCanSupply() != null && order.getCanSupply() == 1) {
+            throw new RuntimeException("该订单已标记为可供货");
+        }
+        // 扣减库存
+        List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
+        for (OrderItem item : items) {
+            Product product = productMapper.selectByCode(item.getProductCode());
+            if (product == null || product.getStockQuantity() == null || product.getStockQuantity() < item.getQuantity()) {
+                throw new RuntimeException("商品[" + (product != null ? product.getProductName() : item.getProductCode()) + "]库存仍不足，请先进货");
+            }
+            productMapper.updateStock(item.getProductCode(), -item.getQuantity());
+            evictProductCacheByCode(item.getProductCode());
+        }
+        evictLowStockCache();
+        order.setCanSupply(1);
+        int rows = orderMapper.updateById(order);
+        log.info("订单已标记为可供货, orderId={}", orderId);
+        return rows > 0;
     }
 
     /** 释放锁列表（用于事务同步回调和兜底释放） */

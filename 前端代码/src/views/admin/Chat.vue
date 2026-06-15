@@ -58,7 +58,7 @@
 import { ref, computed, onMounted, nextTick, onBeforeUnmount } from 'vue'
 import { useStore } from 'vuex'
 import { ChatDotSquare, UserFilled } from '@element-plus/icons-vue'
-import { getContacts, getChatHistory, markAsRead, createChatSocket } from '@/api/chat'
+import { getContacts, getChatHistory, markAsRead, getUnreadCount, createChatSocket } from '@/api/chat'
 
 const store = useStore()
 const contacts = ref([])
@@ -154,6 +154,9 @@ const connectWebSocket = () => {
           if (activeContact.value === contactKey) {
             markAsRead(contactKey).catch(() => {})
             scrollToBottom()
+          } else {
+            // 非活跃联系人的消息，增加未读计数
+            totalUnread.value++
           }
           // 更新联系人列表
           if (!contacts.value.includes(contactKey)) {
@@ -167,8 +170,16 @@ const connectWebSocket = () => {
   } catch (e) { console.error('创建 WebSocket 失败:', e) }
 }
 
+const loadUnreadCount = async () => {
+  try {
+    const count = await getUnreadCount()
+    totalUnread.value = count || 0
+  } catch (e) {}
+}
+
 onMounted(() => {
   connectWebSocket()
+  loadUnreadCount()
 })
 
 onBeforeUnmount(() => {

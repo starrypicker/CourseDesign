@@ -60,6 +60,9 @@ public class ReturnRequestController {
         if (orderId == null) {
             return Result.error(400, "订单ID不能为空");
         }
+        if (reason == null || reason.toString().trim().isEmpty()) {
+            return Result.error(400, "申请原因不能为空");
+        }
         ReturnRequest record = new ReturnRequest();
         record.setOrderId(orderId);
         record.setCustomerCode(customerCode);

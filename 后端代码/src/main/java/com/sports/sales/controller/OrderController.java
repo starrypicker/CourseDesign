@@ -115,6 +115,19 @@ public class OrderController {
         return Result.success(orderService.getCompletedOrders());
     }
 
+    @GetMapping("/out-of-stock")
+    public Result<List<Orders>> getOutOfStockOrders(HttpServletRequest request) {
+        checkAdmin(request);
+        return Result.success(orderService.getOutOfStockOrders());
+    }
+
+    @PutMapping("/mark-suppliable/{orderId}")
+    public Result<Void> markAsSuppliable(@PathVariable Long orderId, HttpServletRequest request) {
+        checkAdmin(request);
+        log.info("收到标记可供货请求, orderId={}", orderId);
+        return orderService.markAsSuppliable(orderId) ? Result.success() : Result.error("标记失败");
+    }
+
     /**
      * 获取仪表盘统计数据（仅管理员调用）
      */

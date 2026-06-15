@@ -24,6 +24,7 @@ public class Orders implements Serializable {
     private String recipientAddress;
     private String recipientPhone;
     private String paymentMethod;
+    private String paymentListNo;
     private LocalDateTime paymentTime;
     private String remark;
     private LocalDateTime createTime;
@@ -158,6 +159,14 @@ public class Orders implements Serializable {
 
     public void setPaymentMethod(String paymentMethod) {
         this.paymentMethod = paymentMethod;
+    }
+
+    public String getPaymentListNo() {
+        return paymentListNo;
+    }
+
+    public void setPaymentListNo(String paymentListNo) {
+        this.paymentListNo = paymentListNo;
     }
 
     public LocalDateTime getPaymentTime() {

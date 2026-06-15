@@ -13,8 +13,14 @@
         <el-menu-item index="/admin/purchase"><el-icon><Box /></el-icon><span>进货管理</span></el-menu-item>
         <el-menu-item index="/admin/manufacturers"><el-icon><OfficeBuilding /></el-icon><span>厂家管理</span></el-menu-item>
         <el-menu-item index="/admin/returns"><el-icon><RefreshLeft /></el-icon><span>退换货管理</span></el-menu-item>
-        <el-menu-item index="/admin/chat"><el-icon><ChatDotSquare /></el-icon><span>客服消息</span></el-menu-item>
+        <el-menu-item index="/admin/chat">
+          <el-icon><ChatDotSquare /></el-icon>
+          <span>客服消息</span>
+          <el-badge v-if="chatUnread > 0" :value="chatUnread" class="chat-badge" />
+        </el-menu-item>
         <el-menu-item index="/admin/invoices"><el-icon><Document /></el-icon><span>发票管理</span></el-menu-item>
+        <el-menu-item index="/admin/reports"><el-icon><DataLine /></el-icon><span>订单报表</span></el-menu-item>
+        <el-menu-item index="/admin/low-stock"><el-icon><Warning /></el-icon><span>缺货管理</span></el-menu-item>
       </el-menu>
     </aside>
     <div class="admin-main">
@@ -43,16 +49,36 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useStore } from 'vuex'
-import { DataAnalysis, Goods, List, User, Box, Trophy, UserFilled, ArrowDown, OfficeBuilding, RefreshLeft, ChatDotSquare, Document } from '@element-plus/icons-vue'
+import { DataAnalysis, Goods, List, User, Box, Trophy, UserFilled, ArrowDown, OfficeBuilding, RefreshLeft, ChatDotSquare, Document, DataLine, Warning } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const store = useStore()
 const activeMenu = computed(() => route.path)
 const currentTitle = computed(() => route.meta.title || '')
+const chatUnread = ref(0)
+let unreadTimer = null
+
+const fetchChatUnread = async () => {
+  try {
+    const { getUnreadCount } = await import('@/api/chat')
+    const count = await getUnreadCount()
+    chatUnread.value = count || 0
+  } catch (e) {}
+}
+
+onMounted(() => {
+  fetchChatUnread()
+  unreadTimer = setInterval(fetchChatUnread, 30000)
+})
+
+onBeforeUnmount(() => {
+  if (unreadTimer) { clearInterval(unreadTimer); unreadTimer = null }
+})
+
 const handleCommand = (command) => {
   if (command === 'home') router.push('/home')
   else if (command === 'logout') { store.dispatch('logout'); router.push('/login') }
@@ -68,4 +94,6 @@ const handleCommand = (command) => {
 .header-right { display: flex; align-items: center; }
 .user-info { display: flex; align-items: center; gap: 4px; cursor: pointer; color: #606266; font-size: 14px; }
 .admin-content { flex: 1; padding: 20px; background-color: #f0f2f5; overflow-y: auto; }
+.chat-badge { margin-left: 8px; }
+.chat-badge :deep(.el-badge__content) { margin-top: 0; }
 </style>

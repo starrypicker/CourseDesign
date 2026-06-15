@@ -73,6 +73,7 @@ CREATE TABLE orders (
     recipient_address VARCHAR(200) DEFAULT NULL COMMENT '收件地址',
     recipient_phone VARCHAR(200) DEFAULT NULL COMMENT '收件人电话',
     payment_method VARCHAR(20) DEFAULT NULL COMMENT '支付方式',
+    payment_list_no VARCHAR(50) DEFAULT NULL COMMENT '付款清单号',
     payment_time DATETIME DEFAULT NULL COMMENT '支付时间',
     remark VARCHAR(500) DEFAULT NULL COMMENT '备注',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

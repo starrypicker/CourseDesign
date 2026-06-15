@@ -13,13 +13,14 @@
         <el-card shadow="never">
           <el-tabs v-model="activeTab">
             <el-tab-pane label="基本信息" name="info">
-              <el-form :model="profileForm" label-width="100px" style="max-width:500px;margin-top:20px;">
+              <el-form :model="profileForm" :rules="profileRules" ref="profileFormRef" label-width="100px" style="max-width:500px;margin-top:20px;">
                 <el-form-item label="顾客编码"><el-input v-model="profileForm.customerCode" disabled /></el-form-item>
-                <el-form-item label="顾客名称"><el-input v-model="profileForm.customerName" placeholder="请输入名称" /></el-form-item>
+                <el-form-item label="顾客名称" prop="customerName"><el-input v-model="profileForm.customerName" placeholder="请输入名称" /></el-form-item>
                 <el-form-item label="联系人"><el-input v-model="profileForm.contactName" placeholder="请输入联系人" /></el-form-item>
-                <el-form-item label="邮箱"><el-input v-model="profileForm.email" placeholder="请输入邮箱" /></el-form-item>
-                <el-form-item label="手机号"><el-input v-model="profileForm.phone" placeholder="请输入手机号" /></el-form-item>
-                <el-form-item label="地址"><el-input v-model="profileForm.address" placeholder="请输入地址" /></el-form-item>
+                <el-form-item label="邮箱" prop="email"><el-input v-model="profileForm.email" placeholder="请输入邮箱" /></el-form-item>
+                <el-form-item label="手机号" prop="phone"><el-input v-model="profileForm.phone" placeholder="请输入手机号" /></el-form-item>
+                <el-form-item label="地址" prop="address"><el-input v-model="profileForm.address" placeholder="请输入地址" /></el-form-item>
+                <el-form-item label="邮编" prop="postalCode"><el-input v-model="profileForm.postalCode" placeholder="请输入邮编" /></el-form-item>
                 <el-form-item><el-button type="primary" @click="handleSaveProfile">保存修改</el-button></el-form-item>
               </el-form>
             </el-tab-pane>
@@ -47,9 +48,18 @@ import { UserFilled } from '@element-plus/icons-vue'
 const store = useStore()
 const activeTab = ref('info')
 const passwordFormRef = ref(null)
+const profileFormRef = ref(null)
 const userInfo = computed(() => store.getters.userInfo)
 
-const profileForm = reactive({ customerCode: '', customerName: '', contactName: '', email: '', phone: '', address: '' })
+const profileRules = {
+  customerName: [{ required: true, message: '请输入顾客名称', trigger: 'blur' }],
+  phone: [{ pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }],
+  email: [{ type: 'email', message: '请输入有效的邮箱地址', trigger: 'blur' }],
+  address: [{ required: true, message: '请输入地址', trigger: 'blur' }],
+  postalCode: [{ pattern: /^\d{6}$/, message: '请输入6位数字邮编', trigger: 'blur' }]
+}
+
+const profileForm = reactive({ customerCode: '', customerName: '', contactName: '', email: '', phone: '', address: '', postalCode: '' })
 
 watch(userInfo, (info) => {
   if (info) {
@@ -59,6 +69,7 @@ watch(userInfo, (info) => {
     profileForm.email = info.email || ''
     profileForm.phone = info.phone || ''
     profileForm.address = info.address || ''
+    profileForm.postalCode = info.postalCode || ''
   }
 }, { immediate: true })
 
@@ -71,12 +82,14 @@ const passwordRules = {
 }
 
 const handleSaveProfile = async () => {
+  if (!profileFormRef.value) return
   try {
+    await profileFormRef.value.validate()
     const { updateCustomer } = await import('@/api/customer')
-    await updateCustomer({ customerCode: profileForm.customerCode, customerName: profileForm.customerName, contactName: profileForm.contactName, email: profileForm.email, phone: profileForm.phone, address: profileForm.address })
+    await updateCustomer({ customerCode: profileForm.customerCode, customerName: profileForm.customerName, contactName: profileForm.contactName, email: profileForm.email, phone: profileForm.phone, address: profileForm.address, postalCode: profileForm.postalCode })
     store.commit('SET_USER_INFO', { ...userInfo.value, ...profileForm })
     ElMessage.success('个人信息保存成功')
-  } catch (e) { console.error('保存失败:', e) }
+  } catch (e) { if (e !== 'cancel') console.error('保存失败:', e) }
 }
 
 const handleChangePassword = async () => {

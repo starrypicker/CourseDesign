@@ -71,6 +71,19 @@ public class DataInitializer implements CommandLineRunner {
         } catch (Exception e) {
             log.error("自动建表失败: {}", e.getMessage());
         }
+        // 独立 try-catch，确保加列失败不影响建表
+        try (Connection conn = dataSource.getConnection();
+             Statement stmt = conn.createStatement()) {
+            stmt.execute("ALTER TABLE orders ADD COLUMN payment_list_no VARCHAR(50) DEFAULT NULL COMMENT '付款清单号' AFTER payment_method");
+            log.info("已为 orders 表添加 payment_list_no 列");
+        } catch (Exception e) {
+            // 列已存在时会报 Duplicate column 错误，忽略即可
+            if (e.getMessage() != null && e.getMessage().contains("Duplicate column")) {
+                log.info("payment_list_no 列已存在，跳过");
+            } else {
+                log.warn("添加 payment_list_no 列失败(可能已存在): {}", e.getMessage());
+            }
+        }
     }
 
     private void initUser(String username, String rawPassword, String role, String customerCode) {

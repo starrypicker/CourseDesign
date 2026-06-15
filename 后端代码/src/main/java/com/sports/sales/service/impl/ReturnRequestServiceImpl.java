@@ -11,13 +11,18 @@ import com.sports.sales.mapper.OrderMapper;
 import com.sports.sales.mapper.ProductMapper;
 import com.sports.sales.mapper.ReturnRequestMapper;
 import com.sports.sales.service.ReturnRequestService;
+import org.redisson.api.RLock;
+import org.redisson.api.RedissonClient;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ReturnRequestServiceImpl implements ReturnRequestService {
@@ -30,19 +35,22 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
     private final ProductMapper productMapper;
     private final InvoiceMapper invoiceMapper;
     private final CacheManager cacheManager;
+    private final RedissonClient redissonClient;
 
     public ReturnRequestServiceImpl(ReturnRequestMapper returnRequestMapper,
                                      OrderMapper orderMapper,
                                      OrderItemMapper orderItemMapper,
                                      ProductMapper productMapper,
                                      InvoiceMapper invoiceMapper,
-                                     CacheManager cacheManager) {
+                                     CacheManager cacheManager,
+                                     RedissonClient redissonClient) {
         this.returnRequestMapper = returnRequestMapper;
         this.orderMapper = orderMapper;
         this.orderItemMapper = orderItemMapper;
         this.productMapper = productMapper;
         this.invoiceMapper = invoiceMapper;
         this.cacheManager = cacheManager;
+        this.redissonClient = redissonClient;
     }
 
     @Override
@@ -90,9 +98,15 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         if (!record.getCustomerCode().equals(order.getCustomerCode())) {
             throw new RuntimeException("无权操作该订单");
         }
-        // 仅已完成或已签收的订单可申请退换货
-        if (order.getOrderStatus() != 2 && (order.getShippingStatus() == null || order.getShippingStatus() != 2)) {
-            throw new RuntimeException("该订单当前状态不支持退换货申请");
+        // 已取消的订单不可申请退换货
+        if (order.getOrderStatus() != null && order.getOrderStatus() == 3) {
+            throw new RuntimeException("已取消的订单不支持退换货申请");
+        }
+        // 仅订单已完成(2) 且 已签收(shippingStatus==2) 的订单可申请退换货
+        boolean isCompleted = order.getOrderStatus() != null && order.getOrderStatus() == 2;
+        boolean isSigned = order.getShippingStatus() != null && order.getShippingStatus() == 2;
+        if (!isCompleted || !isSigned) {
+            throw new RuntimeException("该订单当前状态不支持退换货申请，需订单已完成且已签收");
         }
         // 检查是否已有进行中的申请
         if (returnRequestMapper.countActiveByOrderId(record.getOrderId()) > 0) {
@@ -160,39 +174,70 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
             throw new RuntimeException("该申请当前状态不允许此操作");
         }
 
-        if (record.getType() != null && record.getType() == 1) {
-            // 换货：不涉及退款，仅标记完成
-            log.info("换货申请完成, id={}, orderId={}", id, record.getOrderId());
-        } else {
-            // 退货退款：回滚库存，更新订单支付状态为已退款
-            Orders order = orderMapper.selectById(record.getOrderId());
-            if (order == null) {
-                throw new RuntimeException("关联订单不存在");
+        // 分布式锁防止并发完成同一订单的退换货
+        String lockKey = "lock:return:complete:" + record.getOrderId();
+        RLock lock = redissonClient.getLock(lockKey);
+        boolean syncRegistered = false;
+        try {
+            boolean locked = lock.tryLock(10, 30, TimeUnit.SECONDS);
+            if (!locked) {
+                throw new RuntimeException("系统繁忙，请稍后重试");
             }
-            // 安全检查：防止同一订单多次回滚库存
-            if (returnRequestMapper.countCompletedByOrderId(record.getOrderId()) > 1) {
-                // 当前这一条还未标记为完成，所以 > 1 表示之前已有完成的退货
-                log.warn("订单已存在已完成的退货记录，跳过库存回滚, orderId={}", record.getOrderId());
-            } else {
-                if (order.getCanSupply() != null && order.getCanSupply() == 1) {
-                    List<OrderItem> items = orderItemMapper.selectByOrderId(record.getOrderId());
-                    for (OrderItem item : items) {
-                        productMapper.updateStock(item.getProductCode(), item.getQuantity());
-                        evictProductCache(item.getProductCode());
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (lock.isHeldByCurrentThread()) {
+                        try { lock.unlock(); } catch (Exception ignored) {}
                     }
-                    evictLowStockCache();
                 }
+            });
+            syncRegistered = true;
+
+            if (record.getType() != null && record.getType() == 1) {
+                // 换货：不涉及退款，标记完成并记录日志
+                // 实际业务中换货需要创建新的换货出库单，此处标记原订单待管理员处理
+                log.info("换货申请完成, id={}, orderId={}, 请管理员安排换货出库", id, record.getOrderId());
+            } else {
+                // 退货退款：回滚库存，更新订单支付状态为已退款
+                Orders order = orderMapper.selectById(record.getOrderId());
+                if (order == null) {
+                    throw new RuntimeException("关联订单不存在");
+                }
+                // 安全检查：防止同一订单多次回滚库存（通过分布式锁+计数双重保护）
+                if (returnRequestMapper.countCompletedByOrderId(record.getOrderId()) > 1) {
+                    log.warn("订单已存在已完成的退货记录，跳过库存回滚, orderId={}", record.getOrderId());
+                } else {
+                    if (order.getCanSupply() != null && order.getCanSupply() == 1) {
+                        List<OrderItem> items = orderItemMapper.selectByOrderId(record.getOrderId());
+                        for (OrderItem item : items) {
+                            productMapper.updateStock(item.getProductCode(), item.getQuantity());
+                            evictProductCache(item.getProductCode());
+                        }
+                        evictLowStockCache();
+                    }
+                }
+                // 更新订单退款状态：已退款订单状态设为已取消(3)
+                if (order.getPaymentStatus() != null && order.getPaymentStatus() == 1) {
+                    order.setPaymentStatus(2); // 已退款
+                    order.setOrderStatus(3);   // 已取消（已退款）
+                    orderMapper.updateById(order);
+                } else {
+                    // 未付款的订单退货，也标记为已取消
+                    order.setOrderStatus(3);
+                    orderMapper.updateById(order);
+                }
+                log.info("退货退款完成, id={}, orderId={}, refundAmount={}", id, record.getOrderId(), record.getRefundAmount());
             }
-            // 更新订单退款状态和订单状态
-            if (order.getPaymentStatus() != null && order.getPaymentStatus() == 1) {
-                order.setPaymentStatus(2); // 已退款
-                order.setOrderStatus(2);   // 已完成（已退款）
-                orderMapper.updateById(order);
+            returnRequestMapper.complete(id);
+            return true;
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("退换货完成操作被中断", e);
+        } finally {
+            if (!syncRegistered && lock.isHeldByCurrentThread()) {
+                try { lock.unlock(); } catch (Exception ignored) {}
             }
-            log.info("退货退款完成, id={}, orderId={}, refundAmount={}", id, record.getOrderId(), record.getRefundAmount());
         }
-        returnRequestMapper.complete(id);
-        return true;
     }
 
     private void evictProductCache(String productCode) {

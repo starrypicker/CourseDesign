@@ -6,7 +6,7 @@
         <el-col :xs="12" :sm="4" :md="3"><el-select v-model="selectedStatus" placeholder="订单状态" clearable @change="handleSearch"><el-option label="全部状态" value="" /><el-option label="待确认" value="0" /><el-option label="已确认" value="1" /><el-option label="已完成" value="2" /><el-option label="已取消" value="3" /></el-select></el-col>
         <el-col :xs="12" :sm="4" :md="3"><el-select v-model="selectedPayment" placeholder="付款状态" clearable @change="handleSearch"><el-option label="全部" value="" /><el-option label="未付款" value="0" /><el-option label="已付款" value="1" /><el-option label="已退款" value="2" /></el-select></el-col>
         <el-col :xs="12" :sm="4" :md="3"><el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" style="width:100%" @change="handleSearch" /></el-col>
-        <el-col :xs="24" :sm="4" :md="5"><el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>搜索</el-button><el-button @click="handleReset">重置</el-button></el-col>
+        <el-col :xs="24" :sm="4" :md="5"><el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>搜索</el-button><el-button @click="handleReset">重置</el-button><el-button type="warning" plain @click="handleShowOutOfStock">缺货订单</el-button></el-col>
       </el-row>
     </el-card>
     <el-card shadow="never">
@@ -17,7 +17,7 @@
         <el-table-column prop="totalAmount" label="金额" width="100"><template #default="{ row }"><span style="color:#f56c6c;font-weight:500;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template></el-table-column>
         <el-table-column label="付款" width="80"><template #default="{ row }"><el-tag :type="row.paymentStatus === 1 ? 'success' : row.paymentStatus === 2 ? 'info' : 'warning'" size="small">{{ row.paymentStatus === 1 ? '已付' : row.paymentStatus === 2 ? '退款' : '未付' }}</el-tag></template></el-table-column>
         <el-table-column label="发货" width="80"><template #default="{ row }"><el-tag :type="row.shippingStatus === 1 ? 'primary' : row.shippingStatus === 2 ? 'success' : 'info'" size="small">{{ row.shippingStatus === 1 ? '已发' : row.shippingStatus === 2 ? '签收' : '未发' }}</el-tag></template></el-table-column>
-        <el-table-column label="状态" width="80"><template #default="{ row }"><el-tag :type="statusTagType(row.orderStatus)" size="small">{{ statusText(row.orderStatus) }}</el-tag></template></el-table-column>
+        <el-table-column label="供货" width="80"><template #default="{ row }"><el-tag :type="row.canSupply === 0 ? 'danger' : 'success'" size="small">{{ row.canSupply === 0 ? '缺货' : '正常' }}</el-tag></template></el-table-column>
         <el-table-column prop="orderDate" label="下单时间" width="160" />
         <el-table-column label="操作" width="240" fixed="right">
           <template #default="{ row }">
@@ -25,6 +25,7 @@
             <el-button v-if="row.orderStatus === 0" text type="success" size="small" @click="handleConfirm(row)">确认</el-button>
             <el-button v-if="row.orderStatus === 1 && row.paymentStatus === 1 && row.shippingStatus === 0" text type="success" size="small" @click="handleShip(row)">发货</el-button>
             <el-button v-if="(row.orderStatus === 0 || row.orderStatus === 1) && row.shippingStatus === 0" text type="warning" size="small" @click="handleCancel(row)">取消</el-button>
+            <el-button v-if="row.canSupply === 0 && row.orderStatus !== 3" text type="success" size="small" @click="handleMarkSuppliable(row)">标记可供货</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -67,7 +68,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import { getOrderList, getOrderById, confirmOrder, shipOrder, cancelOrder } from '@/api/order'
+import { getOrderList, getOrderById, confirmOrder, shipOrder, cancelOrder, getOutOfStockOrders, markAsSuppliable } from '@/api/order'
 
 const searchKeyword = ref('')
 const selectedStatus = ref('')
@@ -109,6 +110,13 @@ const handleViewDetail = async (row) => {
   catch (e) { currentOrder.value = row; detailVisible.value = true }
 }
 
+const escapeHtml = (str) => {
+  if (!str) return ''
+  const div = document.createElement('div')
+  div.appendChild(document.createTextNode(str))
+  return div.innerHTML
+}
+
 const handlePrintShipping = () => {
   if (!currentOrder.value) return
   const order = currentOrder.value
@@ -116,20 +124,20 @@ const handlePrintShipping = () => {
     <div style="font-family:'Microsoft YaHei',sans-serif;padding:20px;max-width:500px;margin:0 auto;border:2px solid #333;padding:30px;border-radius:8px;">
       <h2 style="text-align:center;margin-bottom:20px;">📦 邮寄信息单</h2>
       <table style="width:100%;border-collapse:collapse;">
-        <tr><td style="padding:8px;font-weight:bold;width:80px;">订单号：</td><td style="padding:8px;">${order.orderId}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold;">收件人：</td><td style="padding:8px;font-size:16px;">${order.recipientName || '-'}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold;">联系电话：</td><td style="padding:8px;font-size:16px;">${order.recipientPhone || '-'}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold;">收件地址：</td><td style="padding:8px;font-size:16px;">${order.recipientAddress || '-'}</td></tr>
-        <tr><td style="padding:8px;font-weight:bold;">运输要求：</td><td style="padding:8px;">${order.shippingRequirement || '无特殊要求'}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;width:80px;">订单号：</td><td style="padding:8px;">${escapeHtml(String(order.orderId))}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">收件人：</td><td style="padding:8px;font-size:16px;">${escapeHtml(order.recipientName)}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">联系电话：</td><td style="padding:8px;font-size:16px;">${escapeHtml(order.recipientPhone)}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">收件地址：</td><td style="padding:8px;font-size:16px;">${escapeHtml(order.recipientAddress)}</td></tr>
+        <tr><td style="padding:8px;font-weight:bold;">运输要求：</td><td style="padding:8px;">${escapeHtml(order.shippingRequirement) || '无特殊要求'}</td></tr>
         <tr><td style="padding:8px;font-weight:bold;">货物重量：</td><td style="padding:8px;">${Number(order.totalWeight || 0).toFixed(2)} kg</td></tr>
         <tr><td style="padding:8px;font-weight:bold;">运费：</td><td style="padding:8px;">¥ ${Number(order.shippingFee || 0).toFixed(2)}</td></tr>
         <tr><td style="padding:8px;font-weight:bold;">发货状态：</td><td style="padding:8px;">${order.shippingStatus === 0 ? '未发货' : order.shippingStatus === 1 ? '已发货' : '已签收'}</td></tr>
       </table>
-      <p style="text-align:center;margin-top:30px;color:#999;font-size:12px;">打印时间：${new Date().toLocaleString('zh-CN')}</p>
+      <p style="text-align:center;margin-top:30px;color:#999;font-size:12px;">打印时间：${escapeHtml(new Date().toLocaleString('zh-CN'))}</p>
     </div>`
   const win = window.open('', '_blank', 'width=600,height=700')
   if (!win) return
-  win.document.write(`<html><head><title>邮寄信息 - 订单${order.orderId}</title></head><body>${shippingHtml}</body></html>`)
+  win.document.write(`<html><head><title>邮寄信息 - 订单${escapeHtml(String(order.orderId))}</title></head><body>${shippingHtml}</body></html>`)
   win.document.close()
   win.focus()
   setTimeout(() => { win.print(); win.close() }, 500)
@@ -148,6 +156,21 @@ const handleShip = (row) => {
 const handleCancel = (row) => {
   ElMessageBox.confirm(`确认取消订单 ${row.orderId}？取消后如果已扣库存将自动回滚`, '取消订单', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'warning' })
     .then(async () => { await cancelOrder(row.orderId); ElMessage.success('订单已取消'); fetchOrders() }).catch(() => {})
+}
+
+const handleShowOutOfStock = async () => {
+  loading.value = true
+  try {
+    const res = await getOutOfStockOrders()
+    orders.value = res || []
+    total.value = (res || []).length
+  } catch (e) { console.error('获取缺货订单失败:', e) }
+  finally { loading.value = false }
+}
+
+const handleMarkSuppliable = (row) => {
+  ElMessageBox.confirm(`确认标记订单 ${row.orderId} 为可供货？将扣减对应商品库存`, '标记可供货', { confirmButtonText: '确定', cancelButtonText: '取消', type: 'info' })
+    .then(async () => { await markAsSuppliable(row.orderId); ElMessage.success('已标记为可供货'); fetchOrders() }).catch(() => {})
 }
 </script>
 

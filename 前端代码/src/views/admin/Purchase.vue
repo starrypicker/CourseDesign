@@ -17,8 +17,17 @@
         <el-table-column prop="totalAmount" label="总金额" width="120"><template #default="{ row }"><span style="color:#f56c6c;font-weight:500;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template></el-table-column>
         <el-table-column prop="status" label="状态" width="100"><template #default="{ row }"><el-tag :type="row.status === 0 ? 'warning' : row.status === 1 ? 'success' : 'info'" size="small">{{ row.status === 0 ? '待入库' : row.status === 1 ? '已入库' : '已取消' }}</el-tag></template></el-table-column>
         <el-table-column prop="createTime" label="创建时间" width="160" />
-        <el-table-column label="操作" width="120" fixed="right"><template #default="{ row }"><el-button v-if="row.status === 0" text type="success" size="small" @click="handleConfirm(row)">确认入库</el-button></template></el-table-column>
+        <el-table-column label="操作" width="200" fixed="right">
+          <template #default="{ row }">
+            <el-button v-if="row.status === 0" text type="success" size="small" @click="handleConfirm(row)">确认入库</el-button>
+            <el-button text type="warning" size="small" @click="handleContactManufacturer(row)">联系厂家</el-button>
+          </template>
+        </el-table-column>
       </el-table>
+      <div v-if="total > 0" style="display:flex;justify-content:center;margin-top:20px">
+        <el-pagination v-model:current-page="pageNum" :page-size="pageSize" :total="total"
+          layout="total, prev, pager, next" @current-change="fetchRecords" />
+      </div>
     </el-card>
     <el-dialog v-model="dialogVisible" title="添加进货记录" width="500px" destroy-on-close>
       <el-form :model="purchaseForm" :rules="purchaseRules" ref="purchaseFormRef" label-width="80px">
@@ -30,6 +39,25 @@
       </el-form>
       <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="handleSubmit" :loading="submitting">确定</el-button></template>
     </el-dialog>
+
+    <!-- 联系厂家弹窗 -->
+    <el-dialog v-model="manufacturerVisible" title="厂家联系信息" width="500px">
+      <template v-if="currentManufacturer">
+        <el-descriptions :column="1" border size="small">
+          <el-descriptions-item label="厂家名称">{{ currentManufacturer.manufacturerName }}</el-descriptions-item>
+          <el-descriptions-item label="厂家代码">{{ currentManufacturer.manufacturerCode }}</el-descriptions-item>
+          <el-descriptions-item label="联系人">{{ currentManufacturer.contactPerson || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ currentManufacturer.phone || '-' }}</el-descriptions-item>
+          <el-descriptions-item label="地址">{{ currentManufacturer.address || '-' }}</el-descriptions-item>
+        </el-descriptions>
+        <div v-if="currentPurchaseItem" style="margin-top:16px;padding:12px;background:#fdf6ec;border-radius:4px;">
+          <p style="margin:0;color:#E6A23C;">📋 待进货商品：<strong>{{ currentPurchaseItem.productName }}</strong>，需进货 <strong>{{ currentPurchaseItem.quantity }}</strong> 件</p>
+        </div>
+      </template>
+      <template #footer>
+        <el-button @click="manufacturerVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -39,7 +67,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Refresh } from '@element-plus/icons-vue'
 import { getPurchaseList, addPurchase, confirmPurchase } from '@/api/purchase'
 import { getProductList } from '@/api/product'
-import { getManufacturerList } from '@/api/manufacturer'
+import { getManufacturerList, getManufacturerByCode } from '@/api/manufacturer'
 
 const records = ref([])
 const productOptions = ref([])
@@ -48,7 +76,13 @@ const loading = ref(false)
 const submitting = ref(false)
 const filterStatus = ref('')
 const dialogVisible = ref(false)
+const manufacturerVisible = ref(false)
+const currentManufacturer = ref(null)
+const currentPurchaseItem = ref(null)
 const purchaseFormRef = ref(null)
+const pageNum = ref(1)
+const pageSize = ref(10)
+const total = ref(0)
 const purchaseForm = reactive({ productCode: '', manufacturerCode: '', quantity: 10, unitPrice: 0 })
 const purchaseRules = {
   productCode: [{ required: true, message: '请选择商品', trigger: 'change' }],
@@ -60,9 +94,11 @@ const purchaseRules = {
 const fetchRecords = async () => {
   loading.value = true
   try {
-    const params = {}
+    const params = { pageNum: pageNum.value, pageSize: pageSize.value }
     if (filterStatus.value !== '') params.status = filterStatus.value
-    const res = await getPurchaseList(params); records.value = res || []
+    const res = await getPurchaseList(params)
+    records.value = res.rows || []
+    total.value = res.total || 0
   } catch (e) { console.error('获取进货记录失败:', e) } finally { loading.value = false }
 }
 
@@ -84,13 +120,27 @@ const handleSubmit = async () => {
     await purchaseFormRef.value.validate()
     submitting.value = true
     await addPurchase({ productCode: purchaseForm.productCode, manufacturerCode: purchaseForm.manufacturerCode, quantity: purchaseForm.quantity, unitPrice: purchaseForm.unitPrice, totalAmount: purchaseForm.quantity * purchaseForm.unitPrice })
-    ElMessage.success('进货记录添加成功'); dialogVisible.value = false; fetchRecords()
+    ElMessage.success('进货记录添加成功'); dialogVisible.value = false; pageNum.value = 1; fetchRecords()
   } catch (e) { if (e !== 'cancel') console.error('添加进货记录失败:', e) } finally { submitting.value = false }
 }
 
 const handleConfirm = (row) => {
   ElMessageBox.confirm(`确认将 ${row.quantity} 件"${row.productName}"入库？`, '确认入库', { confirmButtonText: '确定入库', cancelButtonText: '取消', type: 'info' })
     .then(async () => { await confirmPurchase(row.id); ElMessage.success('入库成功，库存已更新'); fetchRecords() }).catch(() => {})
+}
+
+const handleContactManufacturer = async (row) => {
+  try {
+    currentPurchaseItem.value = row
+    const manufacturer = await getManufacturerByCode(row.manufacturerCode)
+    currentManufacturer.value = manufacturer
+    manufacturerVisible.value = true
+  } catch (e) {
+    // 如果API失败，尝试从manufacturerOptions中查找
+    const found = manufacturerOptions.value.find(m => m.manufacturerCode === row.manufacturerCode)
+    currentManufacturer.value = found || { manufacturerName: row.manufacturerName || row.manufacturerCode, manufacturerCode: row.manufacturerCode }
+    manufacturerVisible.value = true
+  }
 }
 </script>
 

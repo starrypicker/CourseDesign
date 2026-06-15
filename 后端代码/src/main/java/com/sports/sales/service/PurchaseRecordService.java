@@ -1,11 +1,11 @@
 package com.sports.sales.service;
 
+import com.sports.sales.common.PageResult;
 import com.sports.sales.entity.PurchaseRecord;
-import java.util.List;
 
 public interface PurchaseRecordService {
 
-    List<PurchaseRecord> list(Integer status);
+    PageResult<PurchaseRecord> list(Integer status, int pageNum, int pageSize);
 
     PurchaseRecord getById(Long id);
 

@@ -1,12 +1,11 @@
 package com.sports.sales.controller;
 
+import com.sports.sales.common.PageResult;
 import com.sports.sales.common.Result;
 import com.sports.sales.entity.PurchaseRecord;
 import com.sports.sales.service.PurchaseRecordService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/purchase")
@@ -21,10 +20,12 @@ public class PurchaseRecordController {
     }
 
     @GetMapping("/list")
-    public Result<List<PurchaseRecord>> list(@RequestParam(required = false) Integer status,
-                                              HttpServletRequest request) {
+    public Result<PageResult<PurchaseRecord>> list(@RequestParam(required = false) Integer status,
+                                                     @RequestParam(defaultValue = "1") int pageNum,
+                                                     @RequestParam(defaultValue = "10") int pageSize,
+                                                     HttpServletRequest request) {
         checkAdmin(request);
-        return Result.success(purchaseRecordService.list(status));
+        return Result.success(purchaseRecordService.list(status, pageNum, pageSize));
     }
 
     @GetMapping("/{id}")

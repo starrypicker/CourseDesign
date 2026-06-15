@@ -31,4 +31,10 @@ public interface OrderService {
     List<Orders> getCompletedOrders();
 
     java.util.Map<String, Object> getDashboardStats();
+
+    /** 获取缺货订单列表（canSupply=0） */
+    List<Orders> getOutOfStockOrders();
+
+    /** 管理员标记订单为可供货，并扣减库存 */
+    boolean markAsSuppliable(Long orderId);
 }

@@ -19,6 +19,7 @@
         <result column="recipient_address" property="recipientAddress"/>
         <result column="recipient_phone" property="recipientPhone"/>
         <result column="payment_method" property="paymentMethod"/>
+        <result column="payment_list_no" property="paymentListNo"/>
         <result column="payment_time" property="paymentTime"/>
         <result column="remark" property="remark"/>
         <result column="create_time" property="createTime"/>
@@ -31,7 +32,7 @@
         o.shipping_date, o.total_weight, o.shipping_fee, o.total_amount,
         o.payment_status, o.shipping_status, o.order_status,
         o.recipient_name, o.recipient_address, o.recipient_phone,
-        o.payment_method, o.payment_time, o.remark,
+        o.payment_method, o.payment_list_no, o.payment_time, o.remark,
         o.create_time, o.update_time, c.customer_name
     </sql>
 
@@ -56,10 +57,10 @@
                 AND o.order_status = #{orderStatus}
             </if>
             <if test="startDate != null and startDate != ''">
-                AND o.order_date &gt;= #{startDate}
+                AND o.order_date &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
             </if>
             <if test="endDate != null and endDate != ''">
-                AND o.order_date &lt;= #{endDate}
+                AND o.order_date &lt; DATE_ADD(STR_TO_DATE(#{endDate}, '%Y-%m-%d'), INTERVAL 1 DAY)
             </if>
         </where>
         ORDER BY o.create_time DESC
@@ -85,10 +86,10 @@
                 AND o.order_status = #{orderStatus}
             </if>
             <if test="startDate != null and startDate != ''">
-                AND o.order_date &gt;= #{startDate}
+                AND o.order_date &gt;= STR_TO_DATE(#{startDate}, '%Y-%m-%d')
             </if>
             <if test="endDate != null and endDate != ''">
-                AND o.order_date &lt;= #{endDate}
+                AND o.order_date &lt; DATE_ADD(STR_TO_DATE(#{endDate}, '%Y-%m-%d'), INTERVAL 1 DAY)
             </if>
         </where>
     </select>
@@ -138,10 +139,6 @@
         SELECT COUNT(*) FROM orders WHERE order_status = 0
     </select>
 
-    <select id="selectCustomerCount" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM customer WHERE status = 1
-    </select>
-
     <select id="selectMonthOrderCount" resultType="java.lang.Long">
         SELECT COUNT(*) FROM orders
         WHERE YEAR(order_date) = YEAR(CURDATE()) AND MONTH(order_date) = MONTH(CURDATE())
@@ -154,17 +151,25 @@
           AND order_status = 2
     </select>
 
+    <select id="selectOutOfStockOrders" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List"/>
+        FROM orders o
+        LEFT JOIN customer c ON o.customer_code = c.customer_code
+        WHERE o.can_supply = 0 AND o.order_status != 3
+        ORDER BY o.create_time ASC
+    </select>
+
     <insert id="insert" parameterType="com.sports.sales.entity.Orders" useGeneratedKeys="true" keyProperty="orderId">
         INSERT INTO orders (order_date, customer_code, shipping_requirement, can_supply,
             shipping_date, total_weight, shipping_fee, total_amount,
             payment_status, shipping_status, order_status,
             recipient_name, recipient_address, recipient_phone,
-            payment_method, payment_time, remark)
+            payment_method, payment_list_no, payment_time, remark)
         VALUES (#{orderDate}, #{customerCode}, #{shippingRequirement}, #{canSupply},
             #{shippingDate}, #{totalWeight}, #{shippingFee}, #{totalAmount},
             #{paymentStatus}, #{shippingStatus}, #{orderStatus},
             #{recipientName}, #{recipientAddress}, #{recipientPhone},
-            #{paymentMethod}, #{paymentTime}, #{remark})
+            #{paymentMethod}, #{paymentListNo}, #{paymentTime}, #{remark})
     </insert>
 
     <update id="updateById" parameterType="com.sports.sales.entity.Orders">
@@ -183,6 +188,7 @@
             <if test="recipientAddress != null">recipient_address = #{recipientAddress},</if>
             <!-- recipientPhone 不通过 updateById 更新，避免解密后数据被误写回 -->
             <if test="paymentMethod != null">payment_method = #{paymentMethod},</if>
+            <if test="paymentListNo != null">payment_list_no = #{paymentListNo},</if>
             <if test="paymentTime != null">payment_time = #{paymentTime},</if>
             <if test="remark != null">remark = #{remark},</if>
         </set>

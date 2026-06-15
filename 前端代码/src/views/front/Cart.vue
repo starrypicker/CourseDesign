@@ -35,11 +35,55 @@
         <el-button type="primary" size="large" @click="handleCheckout">去结算</el-button>
       </div>
     </el-card>
+
+    <!-- 邮寄信息确认弹窗 -->
+    <el-dialog v-model="confirmVisible" title="确认订单信息" width="620px" destroy-on-close>
+      <div class="confirm-order" v-if="confirmVisible">
+        <h4 style="margin:0 0 12px;color:#303133;">📦 邮寄信息</h4>
+        <el-form :model="shippingForm" :rules="shippingRules" ref="shippingFormRef" label-width="90px">
+          <el-form-item label="收件人" prop="recipientName">
+            <el-input v-model="shippingForm.recipientName" placeholder="请输入收件人姓名" />
+          </el-form-item>
+          <el-form-item label="联系电话" prop="recipientPhone">
+            <el-input v-model="shippingForm.recipientPhone" placeholder="请输入收件人电话" />
+          </el-form-item>
+          <el-form-item label="收件地址" prop="recipientAddress">
+            <el-input v-model="shippingForm.recipientAddress" type="textarea" :rows="2" placeholder="请输入收件地址" />
+          </el-form-item>
+          <el-form-item label="运输要求">
+            <el-input v-model="shippingForm.shippingRequirement" placeholder="运输特殊要求（选填）" />
+          </el-form-item>
+        </el-form>
+
+        <el-divider />
+
+        <h4 style="margin:0 0 12px;color:#303133;">🛒 商品明细</h4>
+        <el-table :data="cart" size="small" stripe style="width:100%">
+          <el-table-column prop="productName" label="商品" />
+          <el-table-column prop="unitPrice" label="单价" width="100">
+            <template #default="{ row }">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</template>
+          </el-table-column>
+          <el-table-column prop="quantity" label="数量" width="80" />
+          <el-table-column label="小计" width="110">
+            <template #default="{ row }"><span style="color:#f56c6c;">¥ {{ (Number(row.unitPrice || 0) * row.quantity).toFixed(2) }}</span></template>
+          </el-table-column>
+        </el-table>
+
+        <div class="order-summary">
+          <span>共 <strong>{{ cartCount }}</strong> 件商品，支付方式：<strong>{{ PAYMENT_METHODS.find(m => m.value === paymentMethod)?.label || paymentMethod }}</strong></span>
+          <span class="summary-total">合计：<strong>¥ {{ cartTotal.toFixed(2) }}</strong></span>
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="confirmVisible = false">返回修改</el-button>
+        <el-button type="primary" @click="handleConfirmOrder" :loading="submitting">确认下单</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, ref, reactive } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
@@ -52,6 +96,24 @@ const cart = computed(() => store.getters.cart)
 const cartCount = computed(() => store.getters.cartCount)
 const cartTotal = computed(() => store.getters.cartTotal)
 const paymentMethod = ref('wechat')
+
+const confirmVisible = ref(false)
+const submitting = ref(false)
+const shippingFormRef = ref(null)
+const shippingForm = reactive({
+  recipientName: '',
+  recipientPhone: '',
+  recipientAddress: '',
+  shippingRequirement: ''
+})
+const shippingRules = {
+  recipientName: [{ required: true, message: '请输入收件人姓名', trigger: 'blur' }],
+  recipientPhone: [
+    { required: true, message: '请输入联系电话', trigger: 'blur' },
+    { pattern: /^1[3-9]\d{9}$/, message: '请输入有效的手机号', trigger: 'blur' }
+  ],
+  recipientAddress: [{ required: true, message: '请输入收件地址', trigger: 'blur' }]
+}
 
 const handleQuantityChange = (productCode, quantity) => store.dispatch('updateCartQuantity', { productCode, quantity })
 const handleRemove = (productCode) => { store.dispatch('removeFromCart', productCode); ElMessage.success('已从购物车移除') }
@@ -104,19 +166,44 @@ const handleCheckout = async () => {
   // 再次检查购物车是否为空
   if (cart.value.length === 0) { ElMessage.warning('购物车中所有商品均已售罄，请重新选购'); return }
 
-  try { await ElMessageBox.confirm('确认提交订单？', '提示', { confirmButtonText: '确定下单', cancelButtonText: '再想想', type: 'info' }) } catch { return }
+  // 预填邮寄信息（从用户Profile）
+  shippingForm.recipientName = userInfo.contactName || userInfo.customerName || ''
+  shippingForm.recipientPhone = userInfo.phone || ''
+  shippingForm.recipientAddress = userInfo.address || ''
+  shippingForm.shippingRequirement = ''
+  confirmVisible.value = true
+}
+
+const handleConfirmOrder = async () => {
+  if (!shippingFormRef.value) return
   try {
+    await shippingFormRef.value.validate()
+  } catch { return }
+
+  submitting.value = true
+  try {
+    const userInfo = store.getters.userInfo
     const { createOrder } = await import('@/api/order')
     const orderData = {
-      customerCode: userInfo.customerCode, recipientName: userInfo.contactName || userInfo.customerName,
-      recipientAddress: userInfo.address, recipientPhone: userInfo.phone, paymentMethod: paymentMethod.value,
+      customerCode: userInfo.customerCode,
+      recipientName: shippingForm.recipientName,
+      recipientAddress: shippingForm.recipientAddress,
+      recipientPhone: shippingForm.recipientPhone,
+      shippingRequirement: shippingForm.shippingRequirement || undefined,
+      paymentMethod: paymentMethod.value,
       items: cart.value.map(item => ({ productCode: item.productCode, quantity: item.quantity }))
     }
     const orderId = await createOrder(orderData)
+    if (orderId == null || orderId <= 0) {
+      ElMessage.error('下单失败，请稍后重试')
+      return
+    }
     store.dispatch('clearCart')
+    confirmVisible.value = false
     ElMessage.success(`下单成功！订单号：${orderId}`)
     router.push('/orders')
   } catch (e) { console.error('下单失败:', e) }
+  finally { submitting.value = false }
 }
 </script>
 
@@ -134,4 +221,6 @@ const handleCheckout = async () => {
 .payment-select { display: flex; align-items: center; gap: 6px; }
 .payment-label { font-size: 13px; color: #909399; }
 .checkout-total strong { color: #f56c6c; font-size: 22px; }
+.order-summary { display: flex; align-items: center; justify-content: space-between; margin-top: 16px; font-size: 14px; color: #606266; }
+.summary-total strong { color: #f56c6c; font-size: 20px; }
 </style>

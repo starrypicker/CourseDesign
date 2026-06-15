@@ -1,5 +1,6 @@
 package com.sports.sales.service.impl;
 
+import com.sports.sales.common.PageResult;
 import com.sports.sales.entity.PurchaseRecord;
 import com.sports.sales.mapper.PurchaseRecordMapper;
 import com.sports.sales.mapper.ProductMapper;
@@ -34,8 +35,11 @@ public class PurchaseRecordServiceImpl implements PurchaseRecordService {
     }
 
     @Override
-    public List<PurchaseRecord> list(Integer status) {
-        return purchaseRecordMapper.selectList(status);
+    public PageResult<PurchaseRecord> list(Integer status, int pageNum, int pageSize) {
+        int offset = (pageNum - 1) * pageSize;
+        Long total = purchaseRecordMapper.selectCount(status);
+        List<PurchaseRecord> rows = purchaseRecordMapper.selectList(status, offset, pageSize);
+        return new PageResult<>(total, rows, pageNum, pageSize);
     }
 
     @Override

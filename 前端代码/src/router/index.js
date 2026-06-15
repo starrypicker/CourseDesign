@@ -17,6 +17,8 @@ const AdminManufacturers = () => import('@/views/admin/Manufacturers.vue')
 const AdminReturns = () => import('@/views/admin/Returns.vue')
 const AdminChat = () => import('@/views/admin/Chat.vue')
 const AdminInvoices = () => import('@/views/admin/Invoices.vue')
+const AdminReports = () => import('@/views/admin/Reports.vue')
+const AdminLowStock = () => import('@/views/admin/LowStock.vue')
 const NotFound = () => import('@/views/NotFound.vue')
 const FrontReturns = () => import('@/views/front/Returns.vue')
 const FrontChat = () => import('@/views/front/Chat.vue')
@@ -58,7 +60,9 @@ const routes = [
       { path: 'manufacturers', name: 'AdminManufacturers', component: AdminManufacturers, meta: { title: '厂家管理' } },
       { path: 'returns', name: 'AdminReturns', component: AdminReturns, meta: { title: '退换货管理' } },
       { path: 'chat', name: 'AdminChat', component: AdminChat, meta: { title: '客服消息' } },
-      { path: 'invoices', name: 'AdminInvoices', component: AdminInvoices, meta: { title: '发票管理' } }
+      { path: 'invoices', name: 'AdminInvoices', component: AdminInvoices, meta: { title: '发票管理' } },
+      { path: 'reports', name: 'AdminReports', component: AdminReports, meta: { title: '订单报表' } },
+      { path: 'low-stock', name: 'AdminLowStock', component: AdminLowStock, meta: { title: '缺货管理' } }
     ]
   },
   { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound, meta: { title: '404 - 页面不存在' } }

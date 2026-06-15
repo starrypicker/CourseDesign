@@ -33,6 +33,10 @@
         </el-card>
       </div>
       <el-empty v-else description="暂无订单" />
+      <div v-if="total > 0" style="display:flex;justify-content:center;margin-top:20px">
+        <el-pagination v-model:current-page="pageNum" :page-size="pageSize" :total="total"
+          layout="prev, pager, next" @current-change="fetchOrders" />
+      </div>
     </el-card>
     <el-dialog v-model="detailVisible" title="订单详情" width="600px">
       <template v-if="detailOrder">

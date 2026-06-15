@@ -47,3 +47,11 @@ export function getCompletedOrders() {
 export function getDashboardStats() {
   return request.get('/order/dashboard-stats')
 }
+
+export function getOutOfStockOrders() {
+  return request.get('/order/out-of-stock')
+}
+
+export function markAsSuppliable(orderId) {
+  return request.put(`/order/mark-suppliable/${orderId}`)
+}

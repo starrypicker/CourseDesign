@@ -22,4 +22,7 @@ public interface CustomerMapper {
     int deleteByCode(@Param("customerCode") String customerCode);
 
     int updatePasswordByCode(@Param("customerCode") String customerCode, @Param("password") String password);
+
+    /** 活跃顾客总数 */
+    long selectTotalCount();
 }
