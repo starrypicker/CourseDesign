@@ -13,6 +13,7 @@ const AdminProducts = () => import('@/views/admin/Products.vue')
 const AdminOrders = () => import('@/views/admin/Orders.vue')
 const AdminUsers = () => import('@/views/admin/Users.vue')
 const AdminPurchase = () => import('@/views/admin/Purchase.vue')
+const AdminManufacturers = () => import('@/views/admin/Manufacturers.vue')
 
 const routes = [
   {
@@ -43,7 +44,8 @@ const routes = [
       { path: 'products', name: 'AdminProducts', component: AdminProducts, meta: { title: '商品管理' } },
       { path: 'orders', name: 'AdminOrders', component: AdminOrders, meta: { title: '订单管理' } },
       { path: 'users', name: 'AdminUsers', component: AdminUsers, meta: { title: '用户管理' } },
-      { path: 'purchase', name: 'AdminPurchase', component: AdminPurchase, meta: { title: '进货管理' } }
+      { path: 'purchase', name: 'AdminPurchase', component: AdminPurchase, meta: { title: '进货管理' } },
+      { path: 'manufacturers', name: 'AdminManufacturers', component: AdminManufacturers, meta: { title: '厂家管理' } }
     ]
   },
   { path: '/:pathMatch(.*)*', redirect: '/home' }

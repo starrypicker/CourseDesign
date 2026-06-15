@@ -10,6 +10,8 @@ import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -32,8 +34,8 @@ public class PurchaseRecordServiceImpl implements PurchaseRecordService {
     }
 
     @Override
-    public List<PurchaseRecord> list() {
-        return purchaseRecordMapper.selectList();
+    public List<PurchaseRecord> list(Integer status) {
+        return purchaseRecordMapper.selectList(status);
     }
 
     @Override
@@ -58,11 +60,26 @@ public class PurchaseRecordServiceImpl implements PurchaseRecordService {
     public boolean confirmPurchase(Long id) {
         String lockKey = "lock:purchase:confirm:" + id;
         RLock lock = redissonClient.getLock(lockKey);
+        boolean syncRegistered = false;
         try {
             boolean locked = lock.tryLock(10, 30, TimeUnit.SECONDS);
             if (!locked) {
                 throw new RuntimeException("系统繁忙，请稍后重试");
             }
+            // 注册事务同步回调：事务提交后再释放锁，防止锁提前释放导致数据不一致
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if (lock.isHeldByCurrentThread()) {
+                        try {
+                            lock.unlock();
+                        } catch (Exception ignored) {
+                        }
+                    }
+                }
+            });
+            syncRegistered = true;
+
             PurchaseRecord record = purchaseRecordMapper.selectById(id);
             if (record == null) {
                 throw new RuntimeException("进货记录不存在");
@@ -72,25 +89,29 @@ public class PurchaseRecordServiceImpl implements PurchaseRecordService {
             }
             purchaseRecordMapper.updateStatus(id, 1);
             productMapper.updateStock(record.getProductCode(), record.getQuantity());
-            evictProductCache();
+            evictProductCache(record.getProductCode());
             log.info("进货确认完成, id={}, productCode={}, quantity={}", id, record.getProductCode(), record.getQuantity());
             return true;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException("确认入库操作被中断", e);
         } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
+            if (!syncRegistered && lock.isHeldByCurrentThread()) {
+                try {
+                    lock.unlock();
+                } catch (Exception ignored) {
+                }
             }
         }
     }
 
-    private void evictProductCache() {
+    /** 精确清除受影响的商品缓存和低库存列表缓存 */
+    private void evictProductCache(String productCode) {
         Cache productCache = cacheManager.getCache("product");
-        Cache lowStockCache = cacheManager.getCache("lowStockProducts");
         if (productCache != null) {
-            productCache.clear();
+            productCache.evict(productCode);
         }
+        Cache lowStockCache = cacheManager.getCache("lowStockProducts");
         if (lowStockCache != null) {
             lowStockCache.clear();
         }

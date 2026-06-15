@@ -36,4 +36,25 @@
     <delete id="deleteByOrderId">
         DELETE FROM order_item WHERE order_id = #{orderId}
     </delete>
+
+    <!-- 销量排行榜：统计已完成订单中各商品的销售总量 -->
+    <select id="selectSalesRanking" resultType="java.util.LinkedHashMap">
+        SELECT oi.product_code AS productCode, p.product_name AS productName,
+               SUM(oi.quantity) AS totalSold, SUM(oi.total_amount) AS totalRevenue
+        FROM order_item oi
+        JOIN orders o ON oi.order_id = o.order_id
+        LEFT JOIN product p ON oi.product_code = p.product_code
+        WHERE o.order_status = 2
+        GROUP BY oi.product_code, p.product_name
+        ORDER BY totalSold DESC
+        LIMIT 10
+    </select>
+
+    <!-- 获取所有已完成订单的商品销量（用于仪表盘汇总） -->
+    <select id="selectTotalSoldQuantity" resultType="java.lang.Long">
+        SELECT IFNULL(SUM(oi.quantity), 0)
+        FROM order_item oi
+        JOIN orders o ON oi.order_id = o.order_id
+        WHERE o.order_status = 2
+    </select>
 </mapper>

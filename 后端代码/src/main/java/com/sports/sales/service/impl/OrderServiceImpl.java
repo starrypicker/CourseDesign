@@ -19,12 +19,15 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
@@ -74,13 +77,40 @@ public class OrderServiceImpl implements OrderService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long createOrder(OrderCreateDTO dto) {
-        String lockKey = "lock:order:create:" + dto.getCustomerCode();
-        RLock lock = redissonClient.getLock(lockKey);
+        // 按商品编码排序后逐商品加锁，防止死锁和超卖
+        List<String> sortedProductCodes = dto.getItems().stream()
+                .map(OrderCreateDTO.OrderItemDTO::getProductCode)
+                .distinct().sorted().collect(Collectors.toList());
+
+        List<RLock> locks = new ArrayList<>();
+        for (String pc : sortedProductCodes) {
+            locks.add(redissonClient.getLock("lock:stock:" + pc));
+        }
+
+        boolean syncRegistered = false;
         try {
-            boolean locked = lock.tryLock(10, 30, TimeUnit.SECONDS);
-            if (!locked) {
-                throw new RuntimeException("系统繁忙，请稍后重试");
+            // 统一获取所有锁（逐个获取，失败时 finally 释放已获取的锁）
+            for (RLock rl : locks) {
+                boolean acquired = false;
+                try {
+                    acquired = rl.tryLock(10, 30, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("创建订单被中断", e);
+                }
+                if (!acquired) {
+                    throw new RuntimeException("系统繁忙，请稍后重试");
+                }
             }
+
+            // 注册事务同步回调：事务提交后再释放锁，防止锁提前释放导致超卖
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    releaseLocks(locks);
+                }
+            });
+            syncRegistered = true;
 
             log.info("开始创建订单, customerCode={}, 商品数={}", dto.getCustomerCode(), dto.getItems().size());
 
@@ -100,17 +130,17 @@ public class OrderServiceImpl implements OrderService {
             List<OrderItem> items = new ArrayList<>();
             BigDecimal totalAmount = BigDecimal.ZERO;
             BigDecimal totalWeight = BigDecimal.ZERO;
-            boolean canSupply = true;
 
             for (OrderCreateDTO.OrderItemDTO itemDTO : dto.getItems()) {
                 Product product = productMapper.selectByCode(itemDTO.getProductCode());
                 if (product == null) {
-                    log.warn("商品不存在: {}", itemDTO.getProductCode());
                     throw new RuntimeException("商品不存在: " + itemDTO.getProductCode());
                 }
                 if (product.getStockQuantity() == null || product.getStockQuantity() < itemDTO.getQuantity()) {
-                    canSupply = false;
-                    log.warn("商品库存不足: productCode={}, 需要={}, 当前={}", itemDTO.getProductCode(), itemDTO.getQuantity(), product.getStockQuantity());
+                    String msg = String.format("商品[%s]库存不足，当前库存: %d，需要: %d",
+                            product.getProductName(), product.getStockQuantity() != null ? product.getStockQuantity() : 0, itemDTO.getQuantity());
+                    log.warn(msg);
+                    throw new RuntimeException(msg);
                 }
 
                 OrderItem item = new OrderItem();
@@ -127,7 +157,7 @@ public class OrderServiceImpl implements OrderService {
                         product.getWeight() != null ? product.getWeight().multiply(BigDecimal.valueOf(itemDTO.getQuantity())) : BigDecimal.ZERO);
             }
 
-            order.setCanSupply(canSupply ? 1 : 0);
+            order.setCanSupply(1);
             order.setTotalAmount(totalAmount);
             order.setTotalWeight(totalWeight);
             order.setShippingFee(calculateShippingFee(totalWeight));
@@ -139,21 +169,18 @@ public class OrderServiceImpl implements OrderService {
             }
             orderItemMapper.insertBatch(items);
 
-            if (canSupply) {
-                for (OrderCreateDTO.OrderItemDTO itemDTO : dto.getItems()) {
-                    productMapper.updateStock(itemDTO.getProductCode(), -itemDTO.getQuantity());
-                }
-                evictProductCache();
+            for (OrderCreateDTO.OrderItemDTO itemDTO : dto.getItems()) {
+                productMapper.updateStock(itemDTO.getProductCode(), -itemDTO.getQuantity());
+                evictProductCacheByCode(itemDTO.getProductCode());
             }
+            evictLowStockCache();
 
-            log.info("订单创建成功, orderId={}, canSupply={}, totalAmount={}", order.getOrderId(), canSupply, totalAmount);
+            log.info("订单创建成功, orderId={}, totalAmount={}", order.getOrderId(), totalAmount);
             return order.getOrderId();
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException("创建订单被中断", e);
         } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
+            // 锁获取阶段失败时在此兜底释放；正常流程由事务同步回调负责释放
+            if (!syncRegistered) {
+                releaseLocks(locks);
             }
         }
     }
@@ -214,13 +241,23 @@ public class OrderServiceImpl implements OrderService {
         if (order.getOrderStatus() == 3) {
             throw new RuntimeException("订单已取消，不能重复取消");
         }
+        if (order.getShippingStatus() != null && order.getShippingStatus() != 0) {
+            throw new RuntimeException("订单已发货，无法取消，请联系客服处理");
+        }
+        // 已付款订单取消时自动退款
+        if (order.getPaymentStatus() != null && order.getPaymentStatus() == 1) {
+            order.setPaymentStatus(2); // 2-已退款
+            orderMapper.updateById(order);
+            log.info("订单退款, orderId={}, amount={}", orderId, order.getTotalAmount());
+        }
         if (order.getCanSupply() != null && order.getCanSupply() == 1) {
             List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
             for (OrderItem item : items) {
                 productMapper.updateStock(item.getProductCode(), item.getQuantity());
+                evictProductCacheByCode(item.getProductCode());
                 log.info("库存回滚, productCode={}, quantity={}", item.getProductCode(), item.getQuantity());
             }
-            evictProductCache();
+            evictLowStockCache();
         }
         log.info("订单取消成功, orderId={}", orderId);
         return orderMapper.updateOrderStatus(orderId, 3) > 0;
@@ -353,15 +390,50 @@ public class OrderServiceImpl implements OrderService {
         long totalCustomers = orderMapper.selectCustomerCount();
         stats.put("totalCustomers", totalCustomers);
 
+        // 本月订单数
+        long monthOrders = orderMapper.selectMonthOrderCount();
+        stats.put("monthOrders", monthOrders);
+
+        // 本月销售额
+        java.math.BigDecimal monthSales = orderMapper.selectMonthSales();
+        stats.put("monthSales", monthSales != null ? monthSales : java.math.BigDecimal.ZERO);
+
+        // 销量排行榜 Top10
+        java.util.List<java.util.Map<String, Object>> salesRanking = orderItemMapper.selectSalesRanking();
+        stats.put("salesRanking", salesRanking);
+
+        // 累计销量件数
+        Long totalSold = orderItemMapper.selectTotalSoldQuantity();
+        stats.put("totalSold", totalSold != null ? totalSold : 0L);
+
         return stats;
     }
 
-    private void evictProductCache() {
-        Cache productCache = cacheManager.getCache("product");
-        Cache lowStockCache = cacheManager.getCache("lowStockProducts");
-        if (productCache != null) {
-            productCache.clear();
+    /** 释放锁列表（用于事务同步回调和兜底释放） */
+    private void releaseLocks(List<RLock> locks) {
+        for (int i = locks.size() - 1; i >= 0; i--) {
+            RLock rl = locks.get(i);
+            if (rl.isHeldByCurrentThread()) {
+                try {
+                    rl.unlock();
+                } catch (Exception ignored) {
+                    // 锁可能已被释放或过期，忽略异常
+                }
+            }
         }
+    }
+
+    /** 精确清除单个商品缓存 */
+    private void evictProductCacheByCode(String productCode) {
+        Cache productCache = cacheManager.getCache("product");
+        if (productCache != null) {
+            productCache.evict(productCode);
+        }
+    }
+
+    /** 清除低库存列表缓存 */
+    private void evictLowStockCache() {
+        Cache lowStockCache = cacheManager.getCache("lowStockProducts");
         if (lowStockCache != null) {
             lowStockCache.clear();
         }

@@ -42,4 +42,10 @@ public interface OrderMapper {
 
     /** 总顾客数 */
     long selectCustomerCount();
+
+    /** 本月订单数 */
+    long selectMonthOrderCount();
+
+    /** 本月销售额 */
+    java.math.BigDecimal selectMonthSales();
 }

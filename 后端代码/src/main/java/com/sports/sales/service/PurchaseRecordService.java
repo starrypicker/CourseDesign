@@ -5,7 +5,7 @@ import java.util.List;
 
 public interface PurchaseRecordService {
 
-    List<PurchaseRecord> list();
+    List<PurchaseRecord> list(Integer status);
 
     PurchaseRecord getById(Long id);
 

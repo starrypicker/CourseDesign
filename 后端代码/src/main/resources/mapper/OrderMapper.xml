@@ -142,6 +142,18 @@
         SELECT COUNT(*) FROM customer WHERE status = 1
     </select>
 
+    <select id="selectMonthOrderCount" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders
+        WHERE YEAR(order_date) = YEAR(CURDATE()) AND MONTH(order_date) = MONTH(CURDATE())
+    </select>
+
+    <select id="selectMonthSales" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(total_amount), 0)
+        FROM orders
+        WHERE YEAR(order_date) = YEAR(CURDATE()) AND MONTH(order_date) = MONTH(CURDATE())
+          AND order_status = 2
+    </select>
+
     <insert id="insert" parameterType="com.sports.sales.entity.Orders" useGeneratedKeys="true" keyProperty="orderId">
         INSERT INTO orders (order_date, customer_code, shipping_requirement, can_supply,
             shipping_date, total_weight, shipping_fee, total_amount,

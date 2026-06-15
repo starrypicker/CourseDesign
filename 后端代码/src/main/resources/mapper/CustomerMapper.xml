@@ -33,6 +33,9 @@
             <if test="phone != null and phone != ''">
                 AND phone = #{phone}
             </if>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
         </where>
         ORDER BY create_time DESC
         LIMIT #{pageSize} OFFSET #{offset}
@@ -49,6 +52,9 @@
             </if>
             <if test="phone != null and phone != ''">
                 AND phone = #{phone}
+            </if>
+            <if test="status != null">
+                AND status = #{status}
             </if>
         </where>
     </select>

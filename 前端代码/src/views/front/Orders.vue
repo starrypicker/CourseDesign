@@ -33,7 +33,7 @@
           <el-descriptions-item label="订单号">{{ detailOrder.orderId }}</el-descriptions-item>
           <el-descriptions-item label="下单时间">{{ detailOrder.orderDate }}</el-descriptions-item>
           <el-descriptions-item label="订单状态"><el-tag :type="statusTagType(detailOrder.orderStatus)" size="small">{{ statusText(detailOrder) }}</el-tag></el-descriptions-item>
-          <el-descriptions-item label="付款状态">{{ detailOrder.paymentStatus === 1 ? '已付款' : '未付款' }}</el-descriptions-item>
+          <el-descriptions-item label="付款状态">{{ detailOrder.paymentStatus === 1 ? '已付款' : detailOrder.paymentStatus === 2 ? '已退款' : '未付款' }}</el-descriptions-item>
           <el-descriptions-item label="发货状态">{{ detailOrder.shippingStatus === 0 ? '未发货' : detailOrder.shippingStatus === 1 ? '已发货' : '已签收' }}</el-descriptions-item>
           <el-descriptions-item label="支付方式">{{ detailOrder.paymentMethod || '-' }}</el-descriptions-item>
           <el-descriptions-item label="收件人">{{ detailOrder.recipientName || '-' }}</el-descriptions-item>

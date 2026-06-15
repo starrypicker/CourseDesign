@@ -3,7 +3,8 @@
     <el-card shadow="never" class="toolbar-card">
       <el-row :gutter="16" align="middle">
         <el-col :xs="24" :sm="4" :md="3"><el-button type="primary" @click="handleAdd"><el-icon><Plus /></el-icon>添加进货记录</el-button></el-col>
-        <el-col :xs="24" :sm="20" :md="21" style="text-align:right;"><el-button @click="fetchRecords"><el-icon><Refresh /></el-icon>刷新</el-button></el-col>
+        <el-col :xs="12" :sm="4" :md="3"><el-select v-model="filterStatus" placeholder="状态筛选" clearable @change="fetchRecords"><el-option label="全部" value="" /><el-option label="待入库" :value="0" /><el-option label="已入库" :value="1" /><el-option label="已取消" :value="2" /></el-select></el-col>
+        <el-col :xs="24" :sm="16" :md="18" style="text-align:right;"><el-button @click="fetchRecords"><el-icon><Refresh /></el-icon>刷新</el-button></el-col>
       </el-row>
     </el-card>
     <el-card shadow="never">
@@ -45,6 +46,7 @@ const productOptions = ref([])
 const manufacturerOptions = ref([])
 const loading = ref(false)
 const submitting = ref(false)
+const filterStatus = ref('')
 const dialogVisible = ref(false)
 const purchaseFormRef = ref(null)
 const purchaseForm = reactive({ productCode: '', manufacturerCode: '', quantity: 10, unitPrice: 0 })
@@ -57,7 +59,11 @@ const purchaseRules = {
 
 const fetchRecords = async () => {
   loading.value = true
-  try { const res = await getPurchaseList(); records.value = res || [] } catch (e) { console.error('获取进货记录失败:', e) } finally { loading.value = false }
+  try {
+    const params = {}
+    if (filterStatus.value !== '') params.status = filterStatus.value
+    const res = await getPurchaseList(params); records.value = res || []
+  } catch (e) { console.error('获取进货记录失败:', e) } finally { loading.value = false }
 }
 
 const fetchOptions = async () => {

@@ -3,8 +3,14 @@
     <el-row :gutter="20" class="stat-row">
       <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-sales"><div class="stat-icon"><el-icon :size="40"><Goods /></el-icon></div><div class="stat-info"><p class="stat-label">今日销售额</p><h3 class="stat-value">¥ {{ formatNumber(stats.todaySales) }}</h3></div></el-card></el-col>
       <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-orders"><div class="stat-icon"><el-icon :size="40"><List /></el-icon></div><div class="stat-info"><p class="stat-label">今日订单</p><h3 class="stat-value">{{ stats.todayOrders }}</h3></div></el-card></el-col>
+      <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-month-sales"><div class="stat-icon"><el-icon :size="40"><TrendCharts /></el-icon></div><div class="stat-info"><p class="stat-label">本月销售额</p><h3 class="stat-value">¥ {{ formatNumber(stats.monthSales) }}</h3></div></el-card></el-col>
+      <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-month-orders"><div class="stat-icon"><el-icon :size="40"><DataAnalysis /></el-icon></div><div class="stat-info"><p class="stat-label">本月订单</p><h3 class="stat-value">{{ stats.monthOrders }}</h3></div></el-card></el-col>
+    </el-row>
+    <el-row :gutter="20" class="stat-row">
       <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-products"><div class="stat-icon"><el-icon :size="40"><ShoppingBag /></el-icon></div><div class="stat-info"><p class="stat-label">商品总数</p><h3 class="stat-value">{{ stats.totalProducts }}</h3></div></el-card></el-col>
       <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-users"><div class="stat-icon"><el-icon :size="40"><User /></el-icon></div><div class="stat-info"><p class="stat-label">注册用户</p><h3 class="stat-value">{{ stats.totalCustomers }}</h3></div></el-card></el-col>
+      <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-pending"><div class="stat-icon"><el-icon :size="40"><Clock /></el-icon></div><div class="stat-info"><p class="stat-label">待处理订单</p><h3 class="stat-value" style="color:#E6A23C;">{{ stats.pendingOrders }}</h3></div></el-card></el-col>
+      <el-col :xs="24" :sm="12" :md="6"><el-card shadow="hover" class="stat-card stat-warning"><div class="stat-icon"><el-icon :size="40"><Warning /></el-icon></div><div class="stat-info"><p class="stat-label">库存预警</p><h3 class="stat-value" style="color:#f56c6c;">{{ stats.lowStockCount }}</h3></div></el-card></el-col>
     </el-row>
     <el-row :gutter="20">
       <el-col :xs="24" :md="14">
@@ -28,16 +34,9 @@
           <template #header><div class="card-header"><span>商品列表</span><el-button text type="primary" @click="$router.push('/admin/products')">查看全部</el-button></div></template>
           <div class="hot-products"><div v-for="(item, index) in hotProducts" :key="item.productCode" class="hot-item"><span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span><span class="hot-name">{{ item.productName }}</span><span class="hot-sales">库存 {{ item.stockQuantity }}</span><span class="hot-amount">¥ {{ formatNumber(item.unitPrice) }}</span></div></div>
         </el-card>
-      </el-col>
-    </el-row>
-    <el-row :gutter="20" style="margin-top:20px;">
-      <el-col :span="24">
-        <el-card shadow="never">
-          <template #header><div class="card-header"><span>待处理事项</span></div></template>
-          <el-row :gutter="20">
-            <el-col :span="8"><el-statistic title="待确认订单" :value="stats.pendingOrders"><template #suffix><el-button text type="primary" size="small" @click="$router.push('/admin/orders')">处理</el-button></template></el-statistic></el-col>
-            <el-col :span="8"><el-statistic title="库存预警商品" :value="stats.lowStockCount"><template #suffix><el-button text type="danger" size="small" @click="$router.push('/admin/products')">处理</el-button></template></el-statistic></el-col>
-          </el-row>
+        <el-card shadow="never" class="recent-card" style="margin-top:20px;" v-if="salesRanking.length > 0">
+          <template #header><div class="card-header"><span>🏆 销量排行</span><span style="font-size:12px;color:#909399;">累计售出 {{ stats.totalSold }} 件</span></div></template>
+          <div class="hot-products"><div v-for="(item, index) in salesRanking" :key="item.productCode" class="hot-item"><span class="hot-rank" :class="{ top: index < 3 }">{{ index + 1 }}</span><span class="hot-name">{{ item.productName }}</span><span class="hot-sales">售出 {{ item.totalSold }} 件</span><span class="hot-amount">¥ {{ formatNumber(item.totalRevenue) }}</span></div></div>
         </el-card>
       </el-col>
     </el-row>
@@ -46,21 +45,22 @@
 
 <script setup>
 import { reactive, ref, onMounted } from 'vue'
-import { Goods, List, ShoppingBag, User } from '@element-plus/icons-vue'
+import { Goods, List, ShoppingBag, User, TrendCharts, DataAnalysis, Clock, Warning } from '@element-plus/icons-vue'
 import { getProductList, getLowStockProducts } from '@/api/product'
 import { getOrderList, getDashboardStats } from '@/api/order'
 
-const stats = reactive({ todaySales: 0, todayOrders: 0, pendingOrders: 0, lowStockCount: 0, totalProducts: 0, totalCustomers: 0 })
+const stats = reactive({ todaySales: 0, todayOrders: 0, monthSales: 0, monthOrders: 0, pendingOrders: 0, lowStockCount: 0, totalProducts: 0, totalCustomers: 0, totalSold: 0 })
 const recentOrders = ref([])
 const hotProducts = ref([])
 const lowStockProducts = ref([])
+const salesRanking = ref([])
 
 const formatNumber = (val) => { if (val === null || val === undefined) return '0.00'; return Number(val).toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }
 
 const fetchStats = async () => {
   try {
     const res = await getDashboardStats()
-    if (res) { stats.todaySales = res.todaySales || 0; stats.todayOrders = res.todayOrders || 0; stats.pendingOrders = res.pendingOrders || 0; stats.lowStockCount = res.lowStockCount || 0; stats.totalProducts = res.totalProducts || 0; stats.totalCustomers = res.totalCustomers || 0 }
+    if (res) { stats.todaySales = res.todaySales || 0; stats.todayOrders = res.todayOrders || 0; stats.monthSales = res.monthSales || 0; stats.monthOrders = res.monthOrders || 0; stats.pendingOrders = res.pendingOrders || 0; stats.lowStockCount = res.lowStockCount || 0; stats.totalProducts = res.totalProducts || 0; stats.totalCustomers = res.totalCustomers || 0; stats.totalSold = res.totalSold || 0; salesRanking.value = res.salesRanking || [] }
   } catch (e) { console.error('获取仪表盘数据失败:', e) }
 }
 
@@ -91,6 +91,10 @@ const statusTagType = (orderStatus) => { const map = { 0: 'warning', 1: 'primary
 .stat-orders .stat-icon { background: rgba(230,162,60,0.1); color: #E6A23C; }
 .stat-products .stat-icon { background: rgba(103,194,58,0.1); color: #67C23A; }
 .stat-users .stat-icon { background: rgba(144,147,153,0.1); color: #909399; }
+.stat-month-sales .stat-icon { background: rgba(19,206,102,0.1); color: #13CE66; }
+.stat-month-orders .stat-icon { background: rgba(64,158,255,0.1); color: #409EFF; }
+.stat-pending .stat-icon { background: rgba(230,162,60,0.1); color: #E6A23C; }
+.stat-warning .stat-icon { background: rgba(245,108,108,0.1); color: #f56c6c; }
 .stat-info { flex: 1; }
 .stat-label { font-size: 14px; color: #909399; margin-bottom: 4px; }
 .stat-value { font-size: 24px; font-weight: bold; color: #303133; margin: 0; }

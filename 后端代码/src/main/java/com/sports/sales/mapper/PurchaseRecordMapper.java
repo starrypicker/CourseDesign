@@ -8,7 +8,7 @@ import java.util.List;
 @Mapper
 public interface PurchaseRecordMapper {
 
-    List<PurchaseRecord> selectList();
+    List<PurchaseRecord> selectList(@Param("status") Integer status);
 
     PurchaseRecord selectById(@Param("id") Long id);
 

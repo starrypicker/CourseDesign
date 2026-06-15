@@ -20,8 +20,8 @@ public class PurchaseRecordController {
     }
 
     @GetMapping("/list")
-    public Result<List<PurchaseRecord>> list() {
-        return Result.success(purchaseRecordService.list());
+    public Result<List<PurchaseRecord>> list(@RequestParam(required = false) Integer status) {
+        return Result.success(purchaseRecordService.list(status));
     }
 
     @GetMapping("/{id}")

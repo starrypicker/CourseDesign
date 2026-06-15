@@ -24,6 +24,11 @@
         FROM purchase_record pr
         LEFT JOIN product p ON pr.product_code = p.product_code
         LEFT JOIN manufacturer m ON pr.manufacturer_code = m.manufacturer_code
+        <where>
+            <if test="status != null">
+                AND pr.status = #{status}
+            </if>
+        </where>
         ORDER BY pr.create_time DESC
     </select>
 

@@ -1,7 +1,7 @@
 import request from '@/utils/request'
 
-export function getPurchaseList() {
-  return request.get('/purchase/list')
+export function getPurchaseList(params) {
+  return request.get('/purchase/list', { params })
 }
 
 export function getPurchaseById(id) {

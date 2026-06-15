@@ -9,7 +9,7 @@
       </el-row>
     </el-card>
     <el-card shadow="never">
-      <el-table :data="filteredProducts" stripe style="width:100%" v-loading="loading">
+      <el-table :data="products" stripe style="width:100%" v-loading="loading">
         <el-table-column prop="productCode" label="编码" width="80" />
         <el-table-column label="商品信息" min-width="200"><template #default="{ row }"><div style="display:flex;align-items:center;gap:10px;"><div style="width:40px;height:40px;background:#f5f7fa;border-radius:4px;display:flex;align-items:center;justify-content:center;"><el-icon :size="20" color="#909399"><ShoppingBag /></el-icon></div><span>{{ row.productName }}</span></div></template></el-table-column>
         <el-table-column prop="manufacturerName" label="厂家" width="100"><template #default="{ row }"><el-tag size="small">{{ row.manufacturerName || '-' }}</el-tag></template></el-table-column>
@@ -43,7 +43,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, ShoppingBag } from '@element-plus/icons-vue'
 import { getProductList, addProduct, updateProduct, deleteProduct } from '@/api/product'
@@ -78,7 +78,6 @@ onMounted(() => { fetchProducts(); fetchManufacturers() })
 
 const handleSearch = () => { pageNum.value = 1; fetchProducts() }
 const handleReset = () => { searchKeyword.value = ''; selectedCategory.value = ''; pageNum.value = 1; fetchProducts() }
-const filteredProducts = computed(() => products.value)
 
 const productForm = reactive({ productCode: '', productName: '', manufacturerCode: '', unitPrice: 0, stockQuantity: 0, minStock: 10, weight: 0, productDesc: '' })
 const productRules = {

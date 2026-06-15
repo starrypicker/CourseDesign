@@ -2,10 +2,11 @@
   <div class="admin-orders">
     <el-card shadow="never" class="toolbar-card">
       <el-row :gutter="16" align="middle">
-        <el-col :xs="24" :sm="8" :md="6"><el-input v-model="searchKeyword" placeholder="搜索订单号..." clearable @keyup.enter="handleSearch" /></el-col>
-        <el-col :xs="24" :sm="6" :md="4"><el-select v-model="selectedStatus" placeholder="订单状态" clearable @change="handleSearch"><el-option label="全部状态" value="" /><el-option label="待确认" value="0" /><el-option label="已确认" value="1" /><el-option label="已完成" value="2" /><el-option label="已取消" value="3" /></el-select></el-col>
-        <el-col :xs="24" :sm="4" :md="3"><el-select v-model="selectedPayment" placeholder="付款状态" clearable @change="handleSearch"><el-option label="全部" value="" /><el-option label="未付款" value="0" /><el-option label="已付款" value="1" /></el-select></el-col>
-        <el-col :xs="24" :sm="6" :md="5"><el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>搜索</el-button><el-button @click="handleReset">重置</el-button></el-col>
+        <el-col :xs="24" :sm="8" :md="5"><el-input v-model="searchKeyword" placeholder="搜索订单号..." clearable @keyup.enter="handleSearch" /></el-col>
+        <el-col :xs="12" :sm="4" :md="3"><el-select v-model="selectedStatus" placeholder="订单状态" clearable @change="handleSearch"><el-option label="全部状态" value="" /><el-option label="待确认" value="0" /><el-option label="已确认" value="1" /><el-option label="已完成" value="2" /><el-option label="已取消" value="3" /></el-select></el-col>
+        <el-col :xs="12" :sm="4" :md="3"><el-select v-model="selectedPayment" placeholder="付款状态" clearable @change="handleSearch"><el-option label="全部" value="" /><el-option label="未付款" value="0" /><el-option label="已付款" value="1" /><el-option label="已退款" value="2" /></el-select></el-col>
+        <el-col :xs="12" :sm="4" :md="3"><el-date-picker v-model="dateRange" type="daterange" range-separator="至" start-placeholder="开始日期" end-placeholder="结束日期" format="YYYY-MM-DD" value-format="YYYY-MM-DD" style="width:100%" @change="handleSearch" /></el-col>
+        <el-col :xs="24" :sm="4" :md="5"><el-button type="primary" @click="handleSearch"><el-icon><Search /></el-icon>搜索</el-button><el-button @click="handleReset">重置</el-button></el-col>
       </el-row>
     </el-card>
     <el-card shadow="never">
@@ -14,7 +15,7 @@
         <el-table-column prop="customerName" label="客户" width="120"><template #default="{ row }"><span>{{ row.customerName || row.customerCode }}</span></template></el-table-column>
         <el-table-column label="商品" min-width="200"><template #default="{ row }"><span>{{ (row.items || []).map(i => i.productName || i.productCode).join('、') }}</span></template></el-table-column>
         <el-table-column prop="totalAmount" label="金额" width="100"><template #default="{ row }"><span style="color:#f56c6c;font-weight:500;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template></el-table-column>
-        <el-table-column label="付款" width="80"><template #default="{ row }"><el-tag :type="row.paymentStatus === 1 ? 'success' : 'warning'" size="small">{{ row.paymentStatus === 1 ? '已付' : '未付' }}</el-tag></template></el-table-column>
+        <el-table-column label="付款" width="80"><template #default="{ row }"><el-tag :type="row.paymentStatus === 1 ? 'success' : row.paymentStatus === 2 ? 'info' : 'warning'" size="small">{{ row.paymentStatus === 1 ? '已付' : row.paymentStatus === 2 ? '退款' : '未付' }}</el-tag></template></el-table-column>
         <el-table-column label="发货" width="80"><template #default="{ row }"><el-tag :type="row.shippingStatus === 1 ? 'primary' : row.shippingStatus === 2 ? 'success' : 'info'" size="small">{{ row.shippingStatus === 1 ? '已发' : row.shippingStatus === 2 ? '签收' : '未发' }}</el-tag></template></el-table-column>
         <el-table-column label="状态" width="80"><template #default="{ row }"><el-tag :type="statusTagType(row.orderStatus)" size="small">{{ statusText(row.orderStatus) }}</el-tag></template></el-table-column>
         <el-table-column prop="orderDate" label="下单时间" width="160" />
@@ -23,7 +24,7 @@
             <el-button text type="primary" size="small" @click="handleViewDetail(row)">详情</el-button>
             <el-button v-if="row.orderStatus === 0" text type="success" size="small" @click="handleConfirm(row)">确认</el-button>
             <el-button v-if="row.orderStatus === 1 && row.paymentStatus === 1 && row.shippingStatus === 0" text type="success" size="small" @click="handleShip(row)">发货</el-button>
-            <el-button v-if="row.orderStatus === 0 || row.orderStatus === 1" text type="warning" size="small" @click="handleCancel(row)">取消</el-button>
+            <el-button v-if="(row.orderStatus === 0 || row.orderStatus === 1) && row.shippingStatus === 0" text type="warning" size="small" @click="handleCancel(row)">取消</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -36,7 +37,7 @@
           <el-descriptions-item label="客户">{{ currentOrder.customerName || currentOrder.customerCode }}</el-descriptions-item>
           <el-descriptions-item label="下单时间">{{ currentOrder.orderDate }}</el-descriptions-item>
           <el-descriptions-item label="订单状态"><el-tag :type="statusTagType(currentOrder.orderStatus)" size="small">{{ statusText(currentOrder.orderStatus) }}</el-tag></el-descriptions-item>
-          <el-descriptions-item label="付款状态"><el-tag :type="currentOrder.paymentStatus === 1 ? 'success' : 'warning'" size="small">{{ currentOrder.paymentStatus === 1 ? '已付款' : '未付款' }}</el-tag></el-descriptions-item>
+          <el-descriptions-item label="付款状态"><el-tag :type="currentOrder.paymentStatus === 1 ? 'success' : currentOrder.paymentStatus === 2 ? 'info' : 'warning'" size="small">{{ currentOrder.paymentStatus === 1 ? '已付款' : currentOrder.paymentStatus === 2 ? '已退款' : '未付款' }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="发货状态"><el-tag :type="currentOrder.shippingStatus === 1 ? 'primary' : currentOrder.shippingStatus === 2 ? 'success' : 'info'" size="small">{{ currentOrder.shippingStatus === 1 ? '已发货' : currentOrder.shippingStatus === 2 ? '已签收' : '未发货' }}</el-tag></el-descriptions-item>
           <el-descriptions-item label="收货人">{{ currentOrder.recipientName }}</el-descriptions-item>
           <el-descriptions-item label="收货电话">{{ currentOrder.recipientPhone }}</el-descriptions-item>
@@ -67,6 +68,7 @@ import { getOrderList, getOrderById, confirmOrder, shipOrder, cancelOrder } from
 const searchKeyword = ref('')
 const selectedStatus = ref('')
 const selectedPayment = ref('')
+const dateRange = ref(null)
 const detailVisible = ref(false)
 const currentOrder = ref(null)
 const orders = ref([])
@@ -82,6 +84,10 @@ const fetchOrders = async () => {
     if (searchKeyword.value) params.orderId = searchKeyword.value
     if (selectedStatus.value !== '') params.orderStatus = Number(selectedStatus.value)
     if (selectedPayment.value !== '') params.paymentStatus = Number(selectedPayment.value)
+    if (dateRange.value && dateRange.value.length === 2) {
+      params.startDate = dateRange.value[0]
+      params.endDate = dateRange.value[1]
+    }
     const res = await getOrderList(params)
     orders.value = res.rows || []; total.value = res.total || 0
   } catch (e) { console.error('获取订单失败:', e) } finally { loading.value = false }
@@ -90,7 +96,7 @@ const fetchOrders = async () => {
 onMounted(() => fetchOrders())
 
 const handleSearch = () => { pageNum.value = 1; fetchOrders() }
-const handleReset = () => { searchKeyword.value = ''; selectedStatus.value = ''; selectedPayment.value = ''; pageNum.value = 1; fetchOrders() }
+const handleReset = () => { searchKeyword.value = ''; selectedStatus.value = ''; selectedPayment.value = ''; dateRange.value = null; pageNum.value = 1; fetchOrders() }
 const statusText = (orderStatus) => { const map = { 0: '待确认', 1: '已确认', 2: '已完成', 3: '已取消' }; return map[orderStatus] || '未知' }
 const statusTagType = (orderStatus) => { const map = { 0: 'warning', 1: 'primary', 2: 'success', 3: 'info' }; return map[orderStatus] || 'info' }
 
