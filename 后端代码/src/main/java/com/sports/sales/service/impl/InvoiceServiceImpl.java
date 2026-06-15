@@ -70,9 +70,12 @@ public class InvoiceServiceImpl implements InvoiceService {
         if (order.getPaymentStatus() == null || order.getPaymentStatus() == 0) {
             throw new RuntimeException("订单未付款，无法申请发票");
         }
-        // 检查是否已申请过
+        // 检查是否已申请过（含已作废，作废后不可重开）
         Invoice existing = invoiceMapper.selectByOrderId(record.getOrderId());
         if (existing != null) {
+            if (existing.getStatus() != null && existing.getStatus() == 2) {
+                throw new RuntimeException("该订单的发票已作废，不可重新申请");
+            }
             throw new RuntimeException("该订单已申请过发票，发票号：" + (existing.getInvoiceNo() != null ? existing.getInvoiceNo() : "待生成"));
         }
         record.setAmount(order.getTotalAmount());

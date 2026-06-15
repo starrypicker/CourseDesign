@@ -102,9 +102,9 @@ public class ReturnRequestServiceImpl implements ReturnRequestService {
         if (returnRequestMapper.countCompletedByOrderId(record.getOrderId()) > 0) {
             throw new RuntimeException("该订单已完成退换货处理，无法重复申请");
         }
-        // 检查是否已申请发票——已开票的订单需先作废发票才能退换货
+        // 检查是否已申请发票——已作废(status=2)的发票不阻止退换货
         Invoice invoice = invoiceMapper.selectByOrderId(record.getOrderId());
-        if (invoice != null) {
+        if (invoice != null && (invoice.getStatus() == null || invoice.getStatus() != 2)) {
             String invoiceInfo = invoice.getStatus() != null && invoice.getStatus() == 1
                     ? "该订单已开具发票（发票号：" + invoice.getInvoiceNo() + "），请先联系管理员作废发票后再申请退换货"
                     : "该订单已申请发票（待开票），请先取消发票申请后再申请退换货";
