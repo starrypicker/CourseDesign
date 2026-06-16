@@ -33,6 +33,7 @@ public class Product implements Serializable {
     private Integer minStock;
     private BigDecimal weight;
     private Integer status;
+    private String image;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
 
@@ -108,6 +109,14 @@ public class Product implements Serializable {
 
     public void setStatus(Integer status) {
         this.status = status;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 
     public LocalDateTime getCreateTime() {

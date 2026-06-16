@@ -14,13 +14,23 @@
     <el-card shadow="never" style="margin-top:16px;">
       <template #header>
         <div class="card-header">
-          <span><el-tag type="danger" size="large">{{ lowStockProducts.length }}</el-tag> 件商品库存不足</span>
+          <span><el-tag type="danger" size="large">{{ filteredLowStock.length }}</el-tag> 件商品库存不足</span>
           <span style="color:#909399;font-size:13px;">库存低于最低库存线（minStock）</span>
         </div>
       </template>
-      <el-table :data="lowStockProducts" stripe v-loading="loading" style="width:100%">
+      <el-table :data="filteredLowStock" stripe v-loading="loading" style="width:100%">
         <el-table-column prop="productCode" label="商品编码" width="100" />
-        <el-table-column prop="productName" label="商品名称" min-width="180" />
+        <el-table-column prop="productName" label="商品名称" min-width="180">
+          <template #default="{ row }">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:32px;height:32px;background:#f5f7fa;border-radius:4px;overflow:hidden;flex-shrink:0;">
+                <img v-if="getProductImage(row)" :src="getProductImage(row)" style="width:100%;height:100%;object-fit:cover;" />
+                <el-icon v-else :size="16" color="#909399" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><ShoppingBag /></el-icon>
+              </div>
+              <span style="color:#409EFF;cursor:pointer;" @click="handleViewProduct(row)">{{ row.productName }}</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="manufacturerName" label="生产厂家" width="160" />
         <el-table-column label="当前库存" width="120">
           <template #default="{ row }">
@@ -54,7 +64,7 @@
           </template>
         </el-table-column>
       </el-table>
-      <el-empty v-if="!loading && lowStockProducts.length === 0" description="🎉 所有商品库存充足" />
+      <el-empty v-if="!loading && filteredLowStock.length === 0" description="🎉 所有商品库存充足" />
     </el-card>
 
     <!-- 缺货订单 -->
@@ -87,6 +97,9 @@
       </el-table>
       <el-empty v-if="!loadingOrders && outOfStockOrders.length === 0" description="暂无缺货订单" />
     </el-card>
+
+    <!-- 商品详情弹窗 -->
+    <ProductDetailDialog v-model:visible="productDetailVisible" :product="productDetail" :show-add-cart="false" />
 
     <!-- 快速补货弹窗 -->
     <el-dialog v-model="replenishVisible" title="快速补货" width="400px" destroy-on-close>
@@ -126,7 +139,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Warning, Refresh, Box, Plus, Phone } from '@element-plus/icons-vue'
 import { getLowStockProducts, replenishStock } from '@/api/product'
@@ -134,6 +147,8 @@ import { getOutOfStockOrders, markAsSuppliable } from '@/api/order'
 import { getManufacturerByCode } from '@/api/manufacturer'
 import { addPurchase } from '@/api/purchase'
 import { useRouter } from 'vue-router'
+import ProductDetailDialog from '@/components/ProductDetailDialog.vue'
+import { getProductImage } from '@/utils/constants'
 
 const router = useRouter()
 const lowStockProducts = ref([])
@@ -147,6 +162,20 @@ const manufacturerVisible = ref(false)
 const currentManufacturer = ref(null)
 const replenishFormRef = ref(null)
 const replenishForm = reactive({ productCode: '', productName: '', currentStock: 0, quantity: 0 })
+
+const productDetailVisible = ref(false)
+const productDetail = ref(null)
+const handleViewProduct = (item) => {
+  if (item && item.productCode) {
+    productDetail.value = { productCode: item.productCode, productName: item.productName || item.productCode }
+    productDetailVisible.value = true
+  }
+}
+
+// 前端二次过滤：确保只显示真正低于最低库存的商品
+const filteredLowStock = computed(() =>
+  lowStockProducts.value.filter(item => item.stockQuantity < item.minStock)
+)
 
 const fetchData = async () => {
   loading.value = true

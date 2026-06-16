@@ -16,7 +16,12 @@
               <template #default="{ row }">{{ row.customerName || row.customerCode }}</template>
             </el-table-column>
             <el-table-column label="商品" min-width="220">
-              <template #default="{ row }">{{ (row.items || []).map(i => i.productName || i.productCode).join('、') }}</template>
+              <template #default="{ row }">
+                <span v-for="(item, idx) in (row.items || [])" :key="idx">
+                  <span v-if="idx > 0">、</span>
+                  <span style="color:#409EFF;cursor:pointer;" @click="handleViewProduct(item)">{{ item.productName || item.productCode }}</span>
+                </span>
+              </template>
             </el-table-column>
             <el-table-column label="金额" width="110">
               <template #default="{ row }"><span style="color:#f56c6c;font-weight:500;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template>
@@ -62,7 +67,12 @@
               <template #default="{ row }">{{ row.customerName || row.customerCode }}</template>
             </el-table-column>
             <el-table-column label="商品" min-width="220">
-              <template #default="{ row }">{{ (row.items || []).map(i => i.productName || i.productCode).join('、') }}</template>
+              <template #default="{ row }">
+                <span v-for="(item, idx) in (row.items || [])" :key="idx">
+                  <span v-if="idx > 0">、</span>
+                  <span style="color:#409EFF;cursor:pointer;" @click="handleViewProduct(item)">{{ item.productName || item.productCode }}</span>
+                </span>
+              </template>
             </el-table-column>
             <el-table-column label="金额" width="110">
               <template #default="{ row }"><span style="color:#f56c6c;font-weight:500;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template>
@@ -98,7 +108,12 @@
               <template #default="{ row }">{{ row.customerName || row.customerCode }}</template>
             </el-table-column>
             <el-table-column label="商品" min-width="220">
-              <template #default="{ row }">{{ (row.items || []).map(i => i.productName || i.productCode).join('、') }}</template>
+              <template #default="{ row }">
+                <span v-for="(item, idx) in (row.items || [])" :key="idx">
+                  <span v-if="idx > 0">、</span>
+                  <span style="color:#409EFF;cursor:pointer;" @click="handleViewProduct(item)">{{ item.productName || item.productCode }}</span>
+                </span>
+              </template>
             </el-table-column>
             <el-table-column label="金额" width="110">
               <template #default="{ row }"><span style="color:#f56c6c;font-weight:500;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template>
@@ -123,6 +138,9 @@
         </el-tab-pane>
       </el-tabs>
     </el-card>
+
+    <!-- 商品详情弹窗 -->
+    <ProductDetailDialog v-model:visible="productDetailVisible" :product="productDetail" :show-add-cart="false" />
 
     <!-- 订单详情弹窗 -->
     <el-dialog v-model="detailVisible" title="订单详情" width="650px">
@@ -179,6 +197,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { DataLine } from '@element-plus/icons-vue'
 import { getCompletedOrders, getUnpaidOrders, getUnshippedOrders, getOrderById } from '@/api/order'
+import ProductDetailDialog from '@/components/ProductDetailDialog.vue'
 
 const activeTab = ref('completed')
 const completedOrders = ref([])
@@ -189,6 +208,15 @@ const loadingUnpaid = ref(false)
 const loadingUnshipped = ref(false)
 const detailVisible = ref(false)
 const currentOrder = ref(null)
+
+const productDetailVisible = ref(false)
+const productDetail = ref(null)
+const handleViewProduct = (item) => {
+  if (item && item.productCode) {
+    productDetail.value = { productCode: item.productCode, productName: item.productName || item.productCode }
+    productDetailVisible.value = true
+  }
+}
 
 const unpaidTotal = computed(() =>
   unpaidOrders.value.reduce((sum, o) => sum + Number(o.totalAmount || 0), 0)

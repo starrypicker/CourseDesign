@@ -27,3 +27,19 @@ export function getLowStockProducts() {
 export function replenishStock(productCode, quantity) {
   return request.post('/product/replenish', null, { params: { productCode, quantity } })
 }
+
+export function uploadProductImage(productCode, file) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return request.post(`/product/${productCode}/upload-image`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}
+
+export function batchUploadProductImages(files) {
+  const formData = new FormData()
+  files.forEach(file => formData.append('files', file))
+  return request.post('/product/batch-upload-images', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+}

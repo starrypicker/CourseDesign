@@ -157,4 +157,6 @@ const statusTagType = (status) => {
 .returns-container { padding: 10px 0; }
 .page-header { display: flex; align-items: center; justify-content: space-between; }
 .page-header h2 { display: flex; align-items: center; gap: 8px; font-size: 18px; margin: 0; }
+:deep(.el-table__row) { transition: background-color 0.2s; }
+:deep(.el-table__row:hover) { background-color: #f5f7fa; }
 </style>

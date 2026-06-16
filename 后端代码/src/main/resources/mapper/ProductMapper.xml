@@ -12,6 +12,7 @@
         <result column="min_stock" property="minStock"/>
         <result column="weight" property="weight"/>
         <result column="status" property="status"/>
+        <result column="image" property="image"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="manufacturer_name" property="manufacturerName"/>
@@ -19,7 +20,7 @@
 
     <sql id="Base_Column_List">
         p.product_code, p.manufacturer_code, p.product_name, p.product_desc,
-        p.unit_price, p.stock_quantity, p.min_stock, p.weight, p.status,
+        p.unit_price, p.stock_quantity, p.min_stock, p.weight, p.status, p.image,
         p.create_time, p.update_time, m.manufacturer_name
     </sql>
 
@@ -74,12 +75,12 @@
         SELECT <include refid="Base_Column_List"/>
         FROM product p
         LEFT JOIN manufacturer m ON p.manufacturer_code = m.manufacturer_code
-        WHERE p.stock_quantity &lt;= p.min_stock AND p.status = 1
+        WHERE p.stock_quantity &lt; p.min_stock AND p.status = 1
     </select>
 
     <insert id="insert" parameterType="com.sports.sales.entity.Product">
-        INSERT INTO product (product_code, manufacturer_code, product_name, product_desc, unit_price, stock_quantity, min_stock, weight, status)
-        VALUES (#{productCode}, #{manufacturerCode}, #{productName}, #{productDesc}, #{unitPrice}, #{stockQuantity}, #{minStock}, #{weight}, #{status})
+        INSERT INTO product (product_code, manufacturer_code, product_name, product_desc, unit_price, stock_quantity, min_stock, weight, status, image)
+        VALUES (#{productCode}, #{manufacturerCode}, #{productName}, #{productDesc}, #{unitPrice}, #{stockQuantity}, #{minStock}, #{weight}, #{status}, #{image})
     </insert>
 
     <update id="updateByCode" parameterType="com.sports.sales.entity.Product">
@@ -93,6 +94,7 @@
             <if test="minStock != null">min_stock = #{minStock},</if>
             <if test="weight != null">weight = #{weight},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="image != null">image = #{image},</if>
         </set>
         WHERE product_code = #{productCode}
     </update>
@@ -110,7 +112,7 @@
     </update>
 
     <select id="selectLowStockCount" resultType="java.lang.Long">
-        SELECT COUNT(*) FROM product WHERE stock_quantity &lt;= min_stock AND status = 1
+        SELECT COUNT(*) FROM product WHERE stock_quantity &lt; min_stock AND status = 1
     </select>
 
     <select id="selectTotalCount" resultType="java.lang.Long">

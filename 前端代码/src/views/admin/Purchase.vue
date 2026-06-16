@@ -10,7 +10,17 @@
     <el-card shadow="never">
       <el-table :data="records" stripe style="width:100%" v-loading="loading">
         <el-table-column prop="id" label="记录ID" width="80" />
-        <el-table-column prop="productName" label="商品名称" min-width="160" />
+        <el-table-column prop="productName" label="商品名称" min-width="160">
+          <template #default="{ row }">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div style="width:32px;height:32px;background:#f5f7fa;border-radius:4px;overflow:hidden;flex-shrink:0;">
+                <img v-if="getProductImage(row)" :src="getProductImage(row)" style="width:100%;height:100%;object-fit:cover;" />
+                <el-icon v-else :size="16" color="#909399" style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;"><ShoppingBag /></el-icon>
+              </div>
+              <span style="color:#409EFF;cursor:pointer;" @click="handleViewProduct(row)">{{ row.productName }}</span>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="manufacturerName" label="厂家" width="120" />
         <el-table-column prop="quantity" label="进货数量" width="100" />
         <el-table-column prop="unitPrice" label="单价" width="100"><template #default="{ row }">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</template></el-table-column>
@@ -40,6 +50,9 @@
       <template #footer><el-button @click="dialogVisible = false">取消</el-button><el-button type="primary" @click="handleSubmit" :loading="submitting">确定</el-button></template>
     </el-dialog>
 
+    <!-- 商品详情弹窗 -->
+    <ProductDetailDialog v-model:visible="productDetailVisible" :product="productDetail" :show-add-cart="false" />
+
     <!-- 联系厂家弹窗 -->
     <el-dialog v-model="manufacturerVisible" title="厂家联系信息" width="500px">
       <template v-if="currentManufacturer">
@@ -64,10 +77,12 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Refresh } from '@element-plus/icons-vue'
+import { Plus, Refresh, ShoppingBag } from '@element-plus/icons-vue'
 import { getPurchaseList, addPurchase, confirmPurchase } from '@/api/purchase'
 import { getProductList } from '@/api/product'
 import { getManufacturerList, getManufacturerByCode } from '@/api/manufacturer'
+import ProductDetailDialog from '@/components/ProductDetailDialog.vue'
+import { getProductImage } from '@/utils/constants'
 
 const records = ref([])
 const productOptions = ref([])
@@ -127,6 +142,15 @@ const handleSubmit = async () => {
 const handleConfirm = (row) => {
   ElMessageBox.confirm(`确认将 ${row.quantity} 件"${row.productName}"入库？`, '确认入库', { confirmButtonText: '确定入库', cancelButtonText: '取消', type: 'info' })
     .then(async () => { await confirmPurchase(row.id); ElMessage.success('入库成功，库存已更新'); fetchRecords() }).catch(() => {})
+}
+
+const productDetailVisible = ref(false)
+const productDetail = ref(null)
+const handleViewProduct = (item) => {
+  if (item && item.productCode) {
+    productDetail.value = { productCode: item.productCode, productName: item.productName || item.productCode }
+    productDetailVisible.value = true
+  }
 }
 
 const handleContactManufacturer = async (row) => {

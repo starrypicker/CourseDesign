@@ -9,7 +9,15 @@
       </template>
       <el-table v-if="cart.length > 0" :data="cart" style="width:100%" stripe>
         <el-table-column label="商品信息" min-width="250">
-          <template #default="{ row }"><div class="cart-product-info"><div class="product-icon"><el-icon :size="36" color="#909399"><ShoppingBag /></el-icon></div><span class="product-name">{{ row.productName }}</span></div></template>
+          <template #default="{ row }">
+            <div class="cart-product-info clickable" @click="handleViewProduct(row)">
+              <div class="product-icon">
+                <img v-if="getProductImage(row)" :src="getProductImage(row)" :alt="row.productName" class="product-img" />
+                <el-icon v-else :size="36" color="#909399"><ShoppingBag /></el-icon>
+              </div>
+              <span class="product-name link">{{ row.productName }}</span>
+            </div>
+          </template>
         </el-table-column>
         <el-table-column label="单价" width="120" align="center"><template #default="{ row }"><span class="price">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</span></template></el-table-column>
         <el-table-column label="数量" width="180" align="center">
@@ -37,6 +45,9 @@
     </el-card>
 
     <!-- 邮寄信息确认弹窗 -->
+    <!-- 商品详情弹窗 -->
+    <ProductDetailDialog v-model:visible="detailVisible" :product="detailProduct" @add-to-cart="onDetailAddToCart" />
+
     <el-dialog v-model="confirmVisible" title="确认订单信息" width="620px" destroy-on-close>
       <div class="confirm-order" v-if="confirmVisible">
         <h4 style="margin:0 0 12px;color:#303133;">📦 邮寄信息</h4>
@@ -88,7 +99,8 @@ import { useStore } from 'vuex'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ShoppingCart, ShoppingBag, Delete } from '@element-plus/icons-vue'
-import { PAYMENT_METHODS } from '@/utils/constants'
+import { PAYMENT_METHODS, getProductImage } from '@/utils/constants'
+import ProductDetailDialog from '@/components/ProductDetailDialog.vue'
 
 const store = useStore()
 const router = useRouter()
@@ -96,6 +108,12 @@ const cart = computed(() => store.getters.cart)
 const cartCount = computed(() => store.getters.cartCount)
 const cartTotal = computed(() => store.getters.cartTotal)
 const paymentMethod = ref('wechat')
+
+// 商品详情弹窗
+const detailVisible = ref(false)
+const detailProduct = ref(null)
+const handleViewProduct = (item) => { detailProduct.value = item; detailVisible.value = true }
+const onDetailAddToCart = () => {}
 
 const confirmVisible = ref(false)
 const submitting = ref(false)
@@ -212,8 +230,15 @@ const handleConfirmOrder = async () => {
 .cart-header { display: flex; align-items: center; justify-content: space-between; }
 .cart-header h2 { display: flex; align-items: center; gap: 8px; font-size: 18px; margin: 0; }
 .cart-product-info { display: flex; align-items: center; gap: 12px; }
-.product-icon { width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 4px; flex-shrink: 0; }
+.cart-product-info.clickable { cursor: pointer; }
+.product-icon {
+  width: 50px; height: 50px; display: flex; align-items: center; justify-content: center;
+  background: #f5f7fa; border-radius: 4px; flex-shrink: 0; overflow: hidden;
+}
+.product-icon .product-img { width: 100%; height: 100%; object-fit: cover; }
 .product-name { font-size: 14px; color: #303133; }
+.product-name.link { color: #409EFF; cursor: pointer; }
+.product-name.link:hover { text-decoration: underline; }
 .price { color: #f56c6c; font-weight: bold; }
 .checkout-card { margin-top: 20px; }
 .checkout-bar { display: flex; align-items: center; justify-content: flex-end; gap: 30px; }

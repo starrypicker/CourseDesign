@@ -137,7 +137,14 @@ onBeforeUnmount(() => {
 .chat-message { display: flex; margin-bottom: 16px; }
 .msg-self { justify-content: flex-end; }
 .msg-other { justify-content: flex-start; }
-.msg-bubble { max-width: 70%; padding: 10px 14px; border-radius: 8px; }
+.msg-bubble {
+  max-width: 70%; padding: 10px 14px; border-radius: 8px;
+  animation: msgIn 0.25s ease;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 .msg-self .msg-bubble { background: #409EFF; color: #fff; }
 .msg-other .msg-bubble { background: #fff; }
 .msg-sender { font-size: 12px; margin-bottom: 4px; opacity: 0.8; }

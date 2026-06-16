@@ -23,3 +23,16 @@ export const PAYMENT_METHODS = [
   { value: 'bank_card', label: '银行卡' },
   { value: 'cod', label: '货到付款' }
 ]
+
+/**
+ * 获取商品图片URL，不存在则返回空字符串
+ * @param {Object|string} product - 商品对象或 image 字段值
+ * @returns {string}
+ */
+export function getProductImage(product) {
+  if (!product) return ''
+  const image = typeof product === 'string' ? product : product.image
+  if (!image) return ''
+  if (image.startsWith('http') || image.startsWith('/')) return image
+  return '/' + image
+}

@@ -30,6 +30,7 @@ CREATE TABLE product (
     min_stock INT NOT NULL DEFAULT 10 COMMENT '最低库存预警线',
     weight DECIMAL(10,2) DEFAULT 0.00 COMMENT '单位重量(kg)',
     status TINYINT NOT NULL DEFAULT 1 COMMENT '状态:1-上架,0-下架',
+    image VARCHAR(500) DEFAULT NULL COMMENT '商品图片路径',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     update_time DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (product_code),
@@ -230,4 +231,12 @@ CREATE TABLE invoice (
     CONSTRAINT fk_invoice_order FOREIGN KEY (order_id) REFERENCES orders(order_id),
     CONSTRAINT fk_invoice_customer FOREIGN KEY (customer_code) REFERENCES customer(customer_code)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='发票信息表';
+
+
+
+
+-- 检查是否有 image 列
+DESC product;
+-- 如果没有，添加它
+ALTER TABLE product ADD COLUMN image VARCHAR(500) DEFAULT NULL COMMENT '商品图片路径';
 

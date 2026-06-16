@@ -49,7 +49,11 @@
         </el-descriptions>
         <h4 style="margin:16px 0 8px;">商品明细</h4>
         <el-table :data="currentOrder.items || []" size="small" stripe>
-          <el-table-column prop="productName" label="商品" />
+          <el-table-column prop="productName" label="商品">
+            <template #default="{ row: item }">
+              <span style="color:#409EFF;cursor:pointer;" @click="handleViewProduct(item)">{{ item.productName }}</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="unitPrice" label="单价" width="100"><template #default="{ row }">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</template></el-table-column>
           <el-table-column prop="quantity" label="数量" width="80" />
           <el-table-column label="小计" width="100"><template #default="{ row }"><span style="color:#f56c6c;">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</span></template></el-table-column>
@@ -61,6 +65,9 @@
         <el-button @click="detailVisible = false">关闭</el-button>
       </template>
     </el-dialog>
+
+    <!-- 商品详情弹窗 -->
+    <ProductDetailDialog v-model:visible="productDetailVisible" :product="productDetail" :show-add-cart="false" />
   </div>
 </template>
 
@@ -69,6 +76,7 @@ import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
 import { getOrderList, getOrderById, confirmOrder, shipOrder, cancelOrder, getOutOfStockOrders, markAsSuppliable } from '@/api/order'
+import ProductDetailDialog from '@/components/ProductDetailDialog.vue'
 
 const searchKeyword = ref('')
 const selectedStatus = ref('')
@@ -81,6 +89,15 @@ const total = ref(0)
 const loading = ref(false)
 const pageNum = ref(1)
 const pageSize = ref(10)
+
+const productDetailVisible = ref(false)
+const productDetail = ref(null)
+const handleViewProduct = (item) => {
+  if (item && item.productCode) {
+    productDetail.value = { productCode: item.productCode, productName: item.productName || item.productCode }
+    productDetailVisible.value = true
+  }
+}
 
 const fetchOrders = async () => {
   loading.value = true

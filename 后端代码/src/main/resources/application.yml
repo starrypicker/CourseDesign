@@ -1,6 +1,12 @@
 server:
   port: 8080
 
+app:
+  upload:
+    # 图片上传目录（绝对路径，与 WebMvcConfig 中静态资源映射保持一致）
+    # IDEA开发环境可改为项目路径如: C:/Users/37883/Desktop/数据库课设 - 副本 (2)/后端代码/uploads
+    base-dir: ${user.home}/sports-uploads
+
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -19,6 +25,11 @@ spring:
       test-while-idle: true
       test-on-borrow: false
       test-on-return: false
+
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 50MB
 
   redis:
     host: ${REDIS_HOST:localhost}

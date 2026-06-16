@@ -13,7 +13,7 @@
         <el-card v-for="order in filteredOrders" :key="order.orderId" shadow="hover" class="order-card">
           <div class="order-top"><div class="order-meta"><span class="order-no">订单号：{{ order.orderId }}</span><span class="order-time">{{ order.orderDate }}</span></div><el-tag :type="statusTagType(order.orderStatus)" size="small">{{ statusText(order) }}</el-tag></div>
           <el-divider />
-          <div class="order-items"><div v-for="item in (order.items || [])" :key="item.itemId" class="order-item"><div class="item-icon"><el-icon :size="28" color="#909399"><ShoppingBag /></el-icon></div><div class="item-info"><span class="item-name">{{ item.productName || item.productCode }}</span><span class="item-qty">x{{ item.quantity }}</span></div><span class="item-price">¥ {{ Number(item.totalAmount || 0).toFixed(2) }}</span></div></div>
+          <div class="order-items"><div v-for="item in (order.items || [])" :key="item.itemId" class="order-item clickable" @click="handleViewProduct(item)"><div class="item-icon"><img v-if="getProductImage(item)" :src="getProductImage(item)" :alt="item.productName" class="item-img" /><el-icon v-else :size="28" color="#909399"><ShoppingBag /></el-icon></div><div class="item-info"><span class="item-name link">{{ item.productName || item.productCode }}</span><span class="item-qty">x{{ item.quantity }}</span></div><span class="item-price">¥ {{ Number(item.totalAmount || 0).toFixed(2) }}</span></div></div>
           <el-divider />
           <div class="order-bottom">
             <span class="order-total">共 {{ (order.items || []).reduce((s, i) => s + i.quantity, 0) }} 件商品，合计：<strong>¥ {{ Number(order.totalAmount || 0).toFixed(2) }}</strong></span>
@@ -55,7 +55,11 @@
         <h4 style="margin:16px 0 8px">商品明细</h4>
         <el-table :data="detailOrder.items || []" border size="small">
           <el-table-column prop="productCode" label="商品编码" width="100" />
-          <el-table-column prop="productName" label="商品名称" />
+          <el-table-column prop="productName" label="商品名称">
+            <template #default="{ row: item }">
+              <span class="link" style="color:#409EFF;cursor:pointer;" @click="handleViewProduct(item)">{{ item.productName }}</span>
+            </template>
+          </el-table-column>
           <el-table-column prop="quantity" label="数量" width="80" />
           <el-table-column prop="unitPrice" label="单价" width="100"><template #default="{ row }">¥ {{ Number(row.unitPrice || 0).toFixed(2) }}</template></el-table-column>
           <el-table-column prop="totalAmount" label="小计" width="100"><template #default="{ row }">¥ {{ Number(row.totalAmount || 0).toFixed(2) }}</template></el-table-column>
@@ -63,6 +67,9 @@
         <div style="text-align:right;margin-top:12px;font-size:16px">合计：<strong style="color:#f56c6c">¥ {{ Number(detailOrder.totalAmount || 0).toFixed(2) }}</strong></div>
       </template>
     </el-dialog>
+
+    <!-- 商品详情弹窗 -->
+    <ProductDetailDialog v-model:visible="productDetailVisible" :product="productDetail" @add-to-cart="onDetailAddToCart" />
   </div>
 </template>
 
@@ -72,7 +79,8 @@ import { useStore } from 'vuex'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { List, ShoppingBag } from '@element-plus/icons-vue'
 import { getOrderList, payOrder, completeOrder, getOrderById, cancelOrder } from '@/api/order'
-import { PAYMENT_METHODS } from '@/utils/constants'
+import { PAYMENT_METHODS, getProductImage } from '@/utils/constants'
+import ProductDetailDialog from '@/components/ProductDetailDialog.vue'
 
 const store = useStore()
 const activeTab = ref('all')
@@ -83,6 +91,17 @@ const pageNum = ref(1)
 const pageSize = ref(10)
 const detailVisible = ref(false)
 const detailOrder = ref(null)
+
+// 商品详情弹窗
+const productDetailVisible = ref(false)
+const productDetail = ref(null)
+const handleViewProduct = (item) => {
+  if (item && item.productCode) {
+    productDetail.value = { productCode: item.productCode, productName: item.productName || item.productCode }
+    productDetailVisible.value = true
+  }
+}
+const onDetailAddToCart = () => {}
 
 const fetchOrders = async () => {
   loading.value = true
@@ -177,9 +196,16 @@ const handleViewDetail = async (order) => {
 .order-time { color: #909399; }
 .order-items { display: flex; flex-direction: column; gap: 12px; }
 .order-item { display: flex; align-items: center; gap: 12px; }
-.item-icon { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background: #f5f7fa; border-radius: 4px; flex-shrink: 0; }
+.order-item.clickable { cursor: pointer; }
+.item-icon {
+  width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;
+  background: #f5f7fa; border-radius: 4px; flex-shrink: 0; overflow: hidden;
+}
+.item-img { width: 100%; height: 100%; object-fit: cover; }
 .item-info { flex: 1; display: flex; align-items: center; gap: 10px; }
 .item-name { font-size: 14px; color: #303133; }
+.item-name.link { color: #409EFF; cursor: pointer; }
+.item-name.link:hover { text-decoration: underline; }
 .item-qty { font-size: 13px; color: #909399; }
 .item-price { font-size: 14px; color: #f56c6c; font-weight: 500; }
 .order-bottom { display: flex; align-items: center; justify-content: space-between; }

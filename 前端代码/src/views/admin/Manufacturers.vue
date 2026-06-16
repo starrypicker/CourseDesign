@@ -112,4 +112,6 @@ const handleDelete = (row) => {
 <style scoped>
 .admin-manufacturers { padding: 0; }
 .toolbar-card { margin-bottom: 16px; }
+:deep(.el-table__row) { transition: background-color 0.2s; }
+:deep(.el-table__row:hover) { background-color: #f5f7fa; }
 </style>

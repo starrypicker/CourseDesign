@@ -106,8 +106,18 @@ const handleChangePassword = async () => {
 
 <style scoped>
 .profile-container { padding: 10px 0; }
-.user-card { text-align: center; padding: 20px 0; }
-.user-avatar { width: 100px; height: 100px; border-radius: 50%; background: #ecf5ff; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+.user-card { text-align: center; padding: 20px 0; border-radius: 12px; }
+.user-card :deep(.el-card__body) { padding: 30px 20px; }
+.user-avatar {
+  width: 100px; height: 100px; border-radius: 50%;
+  background: linear-gradient(135deg, #ecf5ff, #d9ecff);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px; transition: transform 0.3s;
+}
+.user-avatar:hover { transform: scale(1.05); }
 .user-name { font-size: 20px; margin-bottom: 8px; color: #303133; }
 .user-join { margin-top: 12px; font-size: 13px; color: #909399; }
+@media (max-width: 768px) {
+  .profile-container :deep(.el-form-item__label) { width: 70px !important; }
+}
 </style>
