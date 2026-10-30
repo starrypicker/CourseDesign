@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # ========== 1. MySQL 数据库 ==========
+  mysql:
+    image: mysql:8.0
+    container_name: sports-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: yinlinghang111_Y
+      MYSQL_DATABASE: sports_sales
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./数据库/main.sql:/docker-entrypoint-initdb.d/01-init.sql
+      - mysql-data:/var/lib/mysql
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+08:00
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+
+  # ========== 2. Redis 缓存 ==========
+  redis:
+    image: redis:7-alpine
+    container_name: sports-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass yinlinghang111_Y
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "yinlinghang111_Y", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql-data:
+    name: sports-mysql-data
+  redis-data:
+    name: sports-redis-data
